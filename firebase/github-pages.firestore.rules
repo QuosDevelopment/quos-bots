@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function operator() {
+      return request.auth != null && exists(/databases/$(database)/documents/dashboardOperators/$(request.auth.uid)) && get(/databases/$(database)/documents/dashboardOperators/$(request.auth.uid)).data.enabled == true;
+    }
+
+    // These records appear on a public GitHub Pages dashboard. Do not place
+    // sensitive prompts, source content, personal information, or credentials here.
+    match /quosBots/runtimeState {
+      allow read: if true;
+      allow write: if false;
+      match /botProfiles/{id} { allow read: if true; allow write: if false; }
+      match /tasks/{id} { allow read: if false; allow write: if false; }
+      match /earnings/{id} { allow read: if false; allow write: if false; }
+      match /publicTasks/{id} { allow read: if true; allow write: if false; }
+      match /publicEarnings/{id} { allow read: if true; allow write: if false; }
+      match /knowledge/{id} { allow read: if false; allow write: if false; }
+      match /reports/{id} { allow read: if false; allow write: if false; }
+      match /runs/{id} { allow read: if false; allow write: if false; }
+    }
+
+    match /dashboardTasks/{id} {
+      allow read: if operator();
+      allow create: if operator() && request.resource.data.operatorUid == request.auth.uid && request.resource.data.status == 'queued' && request.resource.data.personaId.matches('QB-[0-9]{3}') && request.resource.data.brief is string && request.resource.data.brief.size() > 0 && request.resource.data.brief.size() <= 1000;
+      allow update: if operator() && resource.data.status == 'queued' && request.resource.data.status == 'assigned' && request.resource.data.operatorUid == resource.data.operatorUid;
+      allow delete: if false;
+    }
+
+    match /dashboardControls/{personaId} {
+      allow read: if true;
+      allow create, update: if operator() && request.resource.data.operatorUid == request.auth.uid && request.resource.data.personaId == personaId && (request.resource.data.status == 'paused' || request.resource.data.status == 'active');
+      allow delete: if false;
+    }
+
+    match /dashboardOperators/{id} { allow read: if request.auth != null && request.auth.uid == id; allow write: if false; }
+  }
+}

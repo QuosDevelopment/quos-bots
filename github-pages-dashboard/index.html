@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#050914" />
+    <title>QUOS // Command Grid</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div>
+    <header class="topbar glass">
+      <a class="brand" href="#top"><span class="brand-mark"><i></i><i></i><i></i></span><span>QUOS<span class="slash">//</span>BOTS</span></a>
+      <div class="top-meta"><span class="live-dot"></span><span id="connection">FIREBASE UNCONFIGURED</span><button class="sign-in" id="signIn">Operator sign in</button></div>
+    </header>
+    <main id="top" class="shell">
+      <section class="hero">
+        <div class="hero-copy"><p class="eyebrow">Command surface / 101 internal personas</p><h1>CONTROL<br><em>WITHOUT</em><br>NOISE.</h1><p class="lede">A persistent GitHub Pages view for real bot state. The surface stays online; live persona activity depends on the separately hosted Discord runtime.</p></div>
+        <div class="hero-signal glass"><span class="eyebrow">System pulse</span><div class="signal-line"><span></span><span></span><span></span><span></span><span></span></div><div class="signal-stats"><div><b id="metricOnline">—</b><span>active</span></div><div><b id="metricWorking">—</b><span>working</span></div><div><b id="metricTasks">—</b><span>tasks</span></div></div></div>
+      </section>
+      <section class="metrics"><article class="metric glass"><span>Personas indexed</span><strong id="metricBots">101</strong><small>QB-001 — QB-101</small></article><article class="metric glass"><span>Verified ledger</span><strong id="metricEarnings">—</strong><small>Actual Firebase records only</small></article><article class="metric glass"><span>Gateway report</span><strong id="metricGateway">—</strong><small id="metricUpdated">Awaiting runtime state</small></article></section>
+      <section class="toolbar glass"><div><span class="eyebrow">Persona matrix</span><h2>BOT DIRECTORY</h2></div><div class="tool-actions"><label class="search"><span>⌕</span><input id="search" placeholder="Search ID, role, group" /></label><select id="groupFilter"><option value="">All disciplines</option></select></div></section>
+      <section id="botGrid" class="bot-grid" aria-live="polite"></section>
+      <section class="lower-grid"><article class="ledger glass"><div class="section-heading"><div><span class="eyebrow">Activity feed</span><h2>TASK HISTORY</h2></div><span id="taskCount" class="count">0 records</span></div><div class="table-wrap"><table><thead><tr><th>Timestamp</th><th>Persona</th><th>Task</th><th>State</th></tr></thead><tbody id="taskRows"><tr><td colspan="4">Firebase data will appear here when configured.</td></tr></tbody></table></div></article><article class="ledger glass"><div class="section-heading"><div><span class="eyebrow">Accounting queue</span><h2>EARNINGS</h2></div><span class="count">USD</span></div><div class="table-wrap"><table><thead><tr><th>Timestamp</th><th>Persona</th><th>Amount</th><th>Note</th></tr></thead><tbody id="earningRows"><tr><td colspan="4">No verified earnings records.</td></tr></tbody></table></div></article></section>
+      <aside class="availability glass"><span class="warning-mark">!</span><p><strong>Availability boundary.</strong> GitHub Pages serves this static dashboard continuously, subject to GitHub Pages availability. It does not operate the Discord Gateway. Free-tier bot hosting can sleep or restart; status labels report only the latest Firebase runtime signal.</p></aside>
+    </main>
+    <dialog id="taskDialog" class="task-dialog"><form method="dialog" class="glass modal"><button class="close" value="cancel" aria-label="Close">×</button><span class="eyebrow">Operator command</span><h2 id="dialogTitle">ASSIGN TASK</h2><p id="dialogPersona"></p><label>Task brief<textarea id="taskBrief" required maxlength="1000" placeholder="Describe the requested work and expected outcome."></textarea></label><div class="modal-actions"><button value="cancel" class="secondary">Cancel</button><button id="submitTask" value="default" class="primary">Queue task</button></div><p id="dialogMessage" class="dialog-message"></p></form></dialog>
+    <template id="botCard"><article class="bot-card glass"><div class="card-top"><span class="bot-id"></span><span class="status-pill"></span></div><h3></h3><p class="bot-group"></p><div class="card-foot"><button class="assign">Assign task</button><button class="pause">Kill bot</button></div></article></template>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

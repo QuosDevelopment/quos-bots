@@ -1,0 +1,4 @@
+[build]
+  base = "deployments/netlify-frontend"
+  command = "node generate-config.mjs"
+  publish = "."

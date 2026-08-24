@@ -4,12 +4,15 @@ import { ChannelType, Client, Events, GatewayIntentBits, REST, Routes, SlashComm
 import cron from "node-cron";
 import { PERSONAS, PERSONA_BY_ID } from "./personas.mjs";
 import { answerPersona, researchPersona } from "./research.mjs";
-import { appendBounded, loadState, saveState } from "./state.mjs";
+import { appendBounded, ensureBotProfiles, fetchDashboardControls, fetchQueuedDashboardTasks, loadState, markDashboardTask, recordEarning, recordTask, saveState } from "./state.mjs";
 
 const required = ["DISCORD_BOT_TOKEN", "DISCORD_APPLICATION_ID", "DISCORD_GUILD_ID", "PORT"];
 for (const key of required) if (!process.env[key]) throw new Error(`${key} is required. Copy .env.example to .env and set it before starting.`);
 
 let state = await loadState();
+ensureBotProfiles(state, PERSONAS);
+await saveState(state);
+let dashboardControls = new Map();
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const commandBuilders = [
   new SlashCommandBuilder().setName("qb").setDescription("Ask the persona assigned to this channel.").addStringOption(option => option.setName("prompt").setDescription("Question or task").setRequired(true)),
@@ -18,6 +21,7 @@ const commandBuilders = [
   new SlashCommandBuilder().setName("status").setDescription("Show the scoped persona and operations status."),
   new SlashCommandBuilder().setName("report").setDescription("Send an escalation to QB-000.").addStringOption(option => option.setName("note").setDescription("Issue or decision needed").setRequired(true)),
   new SlashCommandBuilder().setName("vet").setDescription("QB-000: publish a cited research draft.").addStringOption(option => option.setName("research_id").setDescription("Research draft ID").setRequired(true)),
+  new SlashCommandBuilder().setName("earning").setDescription("QB-000: record a verified persona earning.").addStringOption(option => option.setName("persona_id").setDescription("Persona ID, such as QB-015").setRequired(true)).addNumberOption(option => option.setName("amount").setDescription("Verified amount").setRequired(true)).addStringOption(option => option.setName("note").setDescription("Source or accounting note").setRequired(true)),
 ].map(command => command.toJSON());
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -40,6 +44,7 @@ async function recordResearch(persona, question, scheduled = false) {
   const result = await researchPersona(persona, question);
   appendBounded(state.knowledge, result);
   appendBounded(state.runs, { id: result.id, personaId: persona.id, question, scheduled, status: "completed", createdAt: result.createdAt });
+  recordTask(state, persona, scheduled ? "scheduled_research" : "research", "completed", question);
   await writeReport({ personaId: persona.id, kind: "research", severity: result.sources.length >= 2 ? "info" : "watch", summary: `${result.summary}\nSources: ${result.sources.map(source => source.url).join(" | ") || "none"}` });
   return result;
 }
@@ -55,6 +60,25 @@ async function runScheduledResearch() {
     } catch (error) {
       await writeReport({ personaId: persona.id, kind: "escalation", severity: "watch", summary: `Scheduled research failed: ${error instanceof Error ? error.message : "unknown error"}` });
     }
+  }
+  await saveState(state);
+}
+
+async function refreshDashboardControlPlane() {
+  dashboardControls = await fetchDashboardControls();
+  const tasks = await fetchQueuedDashboardTasks();
+  for (const task of tasks) {
+    const persona = PERSONA_BY_ID.get(task.personaId);
+    if (!persona || persona.id === "QB-000") {
+      await markDashboardTask(task.id, "rejected", "Unknown or coordinator persona ID.");
+      continue;
+    }
+    recordTask(state, persona, "dashboard_assignment", "assigned", task.brief);
+    await writeReport({ personaId: persona.id, kind: "activity", severity: "info", summary: `Dashboard task assigned to ${persona.id}: ${task.brief}` });
+    const channelId = state.channels[persona.id];
+    const channel = channelId ? await client.channels.fetch(channelId).catch(() => null) : null;
+    if (channel?.isTextBased()) await channel.send(`**Dashboard task assigned**\n${task.brief}\n\nStatus: assigned. Use this channel to continue the work.`);
+    await markDashboardTask(task.id, "assigned", "Delivered to the persona channel and reported to QB-000.");
   }
   await saveState(state);
 }
@@ -96,7 +120,10 @@ async function reply(interaction, content) {
 
 client.once(Events.ClientReady, async ready => {
   console.log(`QUOS Bots connected as ${ready.user.tag}`);
+  state.health = { gateway: "connected", lastGatewayEventAt: new Date().toISOString() };
+  await saveState(state);
   await registerCommands();
+  await refreshDashboardControlPlane().catch(error => console.warn("Dashboard control plane unavailable:", error.message));
   if (process.argv.includes("--bootstrap-only")) {
     await ensureChannels();
     console.log("Channel bootstrap completed.");
@@ -106,19 +133,20 @@ client.once(Events.ClientReady, async ready => {
 
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand() || interaction.guildId !== process.env.DISCORD_GUILD_ID) return;
+  await interaction.deferReply();
   const personaId = channelToPersona(interaction.channelId);
   const persona = personaId ? PERSONA_BY_ID.get(personaId) : null;
   if (!persona) return reply(interaction, "This command must be run inside a provisioned QUOS persona channel.");
+  if (persona.id !== "QB-000" && dashboardControls.get(persona.id)?.status === "paused") return reply(interaction, `${persona.id} is paused by an authenticated dashboard operator. QB-000 can reactivate it from the GitHub Pages dashboard.`);
 
   if (interaction.commandName === "status") return reply(interaction, `**${persona.id} — ${persona.role}**\nChannel: #${persona.channelSlug}\nKnowledge: ${state.knowledge.filter(item => item.personaId === persona.id).length} drafts / publications.`);
   if (interaction.commandName === "qb") {
-    await interaction.deferReply();
     const answer = await answerPersona(persona, interaction.options.getString("prompt", true));
+    recordTask(state, persona, "persona_answer", "completed", interaction.options.getString("prompt", true));
     await writeReport({ personaId: persona.id, kind: "activity", severity: "info", summary: `Responded to a /qb request in #${persona.channelSlug}.` });
     return reply(interaction, `**${persona.id} — ${persona.role}**\n${answer}`);
   }
   if (interaction.commandName === "research") {
-    await interaction.deferReply();
     const result = await recordResearch(persona, interaction.options.getString("question", true));
     return reply(interaction, `**${persona.id} research draft**\n${result.summary}\n\n${result.sources.map((source, index) => `[${index + 1}] ${source.title}\n${source.url}`).join("\n") || "No public sources returned."}`);
   }
@@ -128,6 +156,7 @@ client.on(Events.InteractionCreate, async interaction => {
     return reply(interaction, matches.length ? matches.map(item => `**${item.personaId}** — ${item.summary}\n${item.sources[0]?.url || "No source URL"}`).join("\n\n") : "No published shared knowledge matched. QB-000 can publish a cited research draft using /vet in the coordinator channel.");
   }
   if (interaction.commandName === "report") {
+    recordTask(state, persona, "escalation", "completed", interaction.options.getString("note", true));
     await writeReport({ personaId: persona.id, kind: "escalation", severity: "watch", summary: interaction.options.getString("note", true) });
     return reply(interaction, `QB-000 received the report from ${persona.id}.`);
   }
@@ -138,8 +167,19 @@ client.on(Events.InteractionCreate, async interaction => {
     if (!item.sources.length) return reply(interaction, "A source-free draft cannot be published.");
     item.status = "published";
     item.vettedAt = new Date().toISOString();
+    recordTask(state, persona, "knowledge_vetting", "completed", item.id);
     await saveState(state);
     return reply(interaction, `Published **${item.id}** to shared knowledge with ${item.sources.length} cited public source(s).`);
+  }
+  if (interaction.commandName === "earning") {
+    if (persona.id !== "QB-000") return reply(interaction, "Only QB-000 can record earnings.");
+    const target = PERSONA_BY_ID.get(interaction.options.getString("persona_id", true)?.toUpperCase());
+    const amount = interaction.options.getNumber("amount", true);
+    if (!target || target.id === "QB-000" || amount <= 0) return reply(interaction, "Provide a valid non-coordinator persona ID and a positive verified amount.");
+    const entry = recordEarning(state, target, amount, "USD", interaction.options.getString("note", true));
+    recordTask(state, persona, "earning_record", "completed", `${entry.personaId}: $${entry.amount}`);
+    await writeReport({ personaId: persona.id, kind: "activity", severity: "info", summary: `Recorded verified earnings for ${entry.personaId}: $${entry.amount.toFixed(2)} USD.` });
+    return reply(interaction, `Recorded $${entry.amount.toFixed(2)} USD for ${entry.personaId}.`);
   }
 });
 
@@ -156,9 +196,12 @@ http.createServer((req, res) => {
       personas: PERSONAS.length - 1,
       coordinator: "QB-000",
       channels: Object.keys(state.channels).length,
+      bots: Object.values(state.botProfiles).sort((left, right) => left.id.localeCompare(right.id)),
       knowledge: state.knowledge.length,
       publishedKnowledge: state.knowledge.filter(item => item.status === "published").length,
       reports: state.reports.slice(0, 8),
+      taskHistory: state.tasks.slice(0, 25),
+      earnings: { currency: "USD", total: state.earnings.reduce((sum, entry) => sum + (entry.currency === "USD" ? entry.amount : 0), 0), entries: state.earnings.slice(0, 25) },
       runs: state.runs.slice(0, 8),
       freeTierNotice: "This process responds and schedules research only while the host is awake.",
     }));
@@ -174,3 +217,4 @@ if (process.env.SCHEDULE_ENABLED !== "false") {
   cron.schedule(expression, () => void runScheduledResearch(), { timezone: "UTC", noOverlap: true });
   console.log(`Automatic research scheduled: ${expression} UTC (runs only while the process is awake).`);
 }
+setInterval(() => void refreshDashboardControlPlane().catch(error => console.warn("Dashboard control refresh failed:", error.message)), 60_000);

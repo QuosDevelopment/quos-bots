@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // QUOS Bots writes through server-side Firebase Admin credentials only.
+    // Dashboard clients must call the Render API, never Firestore directly.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

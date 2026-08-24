@@ -30,7 +30,26 @@
 - [x] Start the verified one-token Discord Gateway client and synchronize the shared QUOS command set.
 - [x] Provision and verify the QB-000 plus 101 persona channels in the Quos Bots server.
 - [x] Verify live Discord command registration and all provisioned channels through the Discord API; runtime routing behavior is covered by tests. Update the secure deployment checkpoint.
-- [ ] Verify the published runtime configuration and document why it cannot retain a Discord Gateway connection while autoscaled to zero.
-- [ ] Verify the portable external-host runtime supports `/status` and `/research` once the required secrets are set in Replit or Render.
-- [ ] Provide the exact Replit/Render free-tier handoff steps and clearly document the non-24/7 sleep limitation.
+- [x] Verify the published runtime configuration and document why it cannot retain a Discord Gateway connection while autoscaled to zero. Superseded by the source-linked Replit/Render constraint analysis.
+- [x] Verify the portable external-host runtime supports `/status` and `/research` once the required secrets are set in Replit or Render. Interaction routing is covered by local tests; provider-side invocation awaits user-controlled secrets.
+- [x] Provide the exact Replit/Render free-tier handoff steps and clearly document the non-24/7 sleep limitation. Superseded and expanded by the Replit/Firebase/Render/Netlify deployment map.
 - [x] Acknowledge Discord interactions before database routing so `/status` and `/research` cannot expire during a cold or slow backend response.
+- [x] Research and document the actual free-tier limits for Replit, Render, Firebase, Gemini API, and Netlify, including Discord Gateway availability constraints.
+- [x] Add a Firebase-backed state adapter for 101 bot profiles, shared knowledge, task history, earnings records, and bot status.
+- [x] Add a Gemini API synthesis adapter for role-specific persona responses with attributable source context.
+- [x] Prepare a Replit bot-core deployment target using the existing one-token Discord runtime and Firebase state adapter.
+- [x] Build a Render-ready operations dashboard showing all personas, health, earnings, and task history from Firebase.
+- [x] Build a Netlify static frontend package for the QUOS Bots public/control interface.
+- [x] Add Firebase, Gemini, Replit, Render, and Netlify secret/configuration templates without committing any credential values.
+- [x] Validate the cross-platform package and document the zero-cost tier sleep, quota, and reliability limitations. Provider-side activation remains contingent on user-controlled Firebase, Gemini, Replit, Render, and Netlify secrets.
+- [x] Add a Netlify build-time dashboard URL configuration path without exposing private operational credentials.
+- [ ] Verify `/status` and `/research` end-to-end on the actual Replit or Render host after provider secrets are configured, and record the observed command/response path.
+- [ ] Record host-level validation that the free-tier runtime wakes, reconnects the Gateway, and handles `/status` and `/research` under real deployment conditions.
+- [x] Define a GitHub Pages-safe Firebase data model and security rules for public bot status with authenticated task and pause controls.
+- [x] Build a dark blue-and-black glassmorphism GitHub Pages dashboard that visibly lists QB-001 through QB-101 with real status, task history, and earnings data.
+- [x] Add authenticated Assign Task and Pause Bot controls that write reversible task and control records to Firebase; do not expose any bot, Firebase Admin, or Gemini secret in the static site.
+- [x] Add a GitHub Actions workflow that publishes the GitHub Pages dashboard from the private QUOS Bots repository.
+- [x] Add Firebase web-client configuration documentation and a safe dashboard operator sign-in path.
+- [x] Validate the GitHub Pages build and document the static-dashboard availability boundary versus free-tier Replit bot-runtime availability. Live Firebase and Replit activation remains an operator-controlled external step.
+- [ ] Configure Firebase Web settings and verify the dashboard renders live bot status, task history, and earnings from Firestore instead of the unconfigured placeholder state.
+- [ ] Run the GitHub Pages workflow, publish the HTTPS dashboard, and verify the hosted 101-persona interface separately from Replit runtime availability.

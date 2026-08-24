@@ -32,7 +32,33 @@ export async function discoverPublicSources(query) {
   }).filter(source => source.title && /^https?:\/\//.test(source.url)).slice(0, 6);
 }
 
-async function callLlm(messages, maxTokens = 900) {
+export function extractGeminiText(payload) {
+  return payload?.candidates?.[0]?.content?.parts?.map(part => part.text || "").join("").trim() || null;
+}
+
+async function callGemini(messages, maxTokens = 900) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return null;
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const system = messages.find(message => message.role === "system")?.content;
+  const contents = messages
+    .filter(message => message.role !== "system")
+    .map(message => ({ role: message.role === "assistant" ? "model" : "user", parts: [{ text: message.content }] }));
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
+      contents,
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.25 },
+    }),
+    signal: AbortSignal.timeout(60_000),
+  });
+  if (!response.ok) throw new Error(`Gemini synthesis returned ${response.status}: ${await response.text()}`);
+  return extractGeminiText(await response.json());
+}
+
+async function callOpenAiCompatible(messages, maxTokens = 900) {
   const key = process.env.LLM_API_KEY;
   if (!key) return null;
   const base = (process.env.LLM_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
@@ -47,22 +73,26 @@ async function callLlm(messages, maxTokens = 900) {
   return payload.choices?.[0]?.message?.content?.trim() || null;
 }
 
+async function callSynthesis(messages, maxTokens = 900) {
+  return (await callGemini(messages, maxTokens)) || (await callOpenAiCompatible(messages, maxTokens));
+}
+
 export async function researchPersona(persona, question) {
   const sources = await discoverPublicSources(question);
   const sourceList = sources.map((source, index) => `[${index + 1}] ${source.title}\n${source.url}\n${source.excerpt}`).join("\n\n");
-  const summary = await callLlm([
+  const summary = await callSynthesis([
     { role: "system", content: `${persona.operatingInstructions} Write a concise research synthesis. Cite only the supplied source list using [n] markers. Do not invent facts or citations. State uncertainty and source-quality limitations.` },
     { role: "user", content: `Question: ${question}\n\nPublic source list:\n${sourceList || "No sources were returned."}` },
   ]) || (sources.length
-    ? `Public source bundle collected for **${question}**. Configure LLM_API_KEY to synthesize findings; QB-000 can review the cited sources now.`
+    ? `Public source bundle collected for **${question}**. Configure GEMINI_API_KEY to synthesize findings; QB-000 can review the cited sources now.`
     : `No public sources were returned for **${question}**. Retry when the search endpoint is available.`);
   return { id: crypto.randomUUID(), personaId: persona.id, role: persona.role, question, summary, sources, status: "draft", createdAt: new Date().toISOString() };
 }
 
 export async function answerPersona(persona, prompt) {
-  const answer = await callLlm([
+  const answer = await callSynthesis([
     { role: "system", content: `${persona.operatingInstructions} Answer in the scope of your role. Be concise. When current evidence is needed, direct the user to /research rather than asserting unsourced facts. Do not provide individualized legal, tax, medical, or investment advice.` },
     { role: "user", content: prompt },
   ]);
-  return answer || `${persona.id} is ready, but LLM_API_KEY is not configured. Use /research for a cited public-source bundle or add an OpenAI-compatible key for role-specific synthesis.`;
+  return answer || `${persona.id} is ready, but GEMINI_API_KEY is not configured. Use /research for a cited public-source bundle or add a Gemini API key for role-specific synthesis.`;
 }
