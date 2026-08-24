@@ -34,5 +34,49 @@ service cloud.firestore {
     }
 
     match /dashboardOperators/{id} { allow read: if request.auth != null && request.auth.uid == id; allow write: if false; }
+
+    // Browser-only QUOS workspace: the public dashboard can render sanitized
+    // persona/task status, while detailed brain records remain operator-private.
+    match /browserWorkspace/tasks/{id} {
+      allow read: if true;
+      allow create: if operator()
+        && request.resource.data.operatorUid == request.auth.uid
+        && request.resource.data.personaId.matches('QB-[0-9]{3}')
+        && request.resource.data.type == 'browser_task'
+        && request.resource.data.summary is string
+        && request.resource.data.summary.size() > 0
+        && request.resource.data.summary.size() <= 1000
+        && request.resource.data.outcome == 'completed';
+      allow update, delete: if false;
+    }
+
+    match /browserWorkspace/botStatuses/{personaId} {
+      allow read: if true;
+      allow create, update: if operator()
+        && request.resource.data.operatorUid == request.auth.uid
+        && request.resource.data.personaId == personaId
+        && request.resource.data.status in ['active', 'working', 'idle', 'attention'];
+      allow delete: if false;
+    }
+
+    match /browserWorkspace/earnings/{id} {
+      allow read: if true;
+      allow create: if operator()
+        && request.resource.data.operatorUid == request.auth.uid
+        && request.resource.data.personaId.matches('QB-[0-9]{3}')
+        && request.resource.data.currency == 'USD'
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.amount <= 1000000
+        && request.resource.data.note is string
+        && request.resource.data.note.size() > 0
+        && request.resource.data.note.size() <= 240;
+      allow update, delete: if false;
+    }
+
+    match /browserWorkspace/brain/{id} {
+      allow read, create: if operator() && request.resource.data.operatorUid == request.auth.uid;
+      allow update, delete: if false;
+    }
   }
 }

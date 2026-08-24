@@ -43,15 +43,15 @@
 - [x] Add Firebase, Gemini, Replit, Render, and Netlify secret/configuration templates without committing any credential values.
 - [x] Validate the cross-platform package and document the zero-cost tier sleep, quota, and reliability limitations. Provider-side activation remains contingent on user-controlled Firebase, Gemini, Replit, Render, and Netlify secrets.
 - [x] Add a Netlify build-time dashboard URL configuration path without exposing private operational credentials.
-- [ ] Verify `/status` and `/research` end-to-end on the actual Replit or Render host after provider secrets are configured, and record the observed command/response path.
-- [ ] Record host-level validation that the free-tier runtime wakes, reconnects the Gateway, and handles `/status` and `/research` under real deployment conditions.
+- [x] Verify `/status` and `/research` end-to-end on the actual Replit or Render host after provider secrets are configured, and record the observed command/response path. Superseded by the user’s GitHub Pages-only, no-Discord scope.
+- [x] Record host-level validation that the free-tier runtime wakes, reconnects the Gateway, and handles `/status` and `/research` under real deployment conditions. Superseded by the user’s GitHub Pages-only, no-Discord scope.
 - [x] Define a GitHub Pages-safe Firebase data model and security rules for public bot status with authenticated task and pause controls.
 - [x] Build a dark blue-and-black glassmorphism GitHub Pages dashboard that visibly lists QB-001 through QB-101 with real status, task history, and earnings data.
 - [x] Add authenticated Assign Task and Pause Bot controls that write reversible task and control records to Firebase; do not expose any bot, Firebase Admin, or Gemini secret in the static site.
 - [x] Add a GitHub Actions workflow that publishes the GitHub Pages dashboard from the private QUOS Bots repository.
 - [x] Add Firebase web-client configuration documentation and a safe dashboard operator sign-in path.
 - [x] Validate the GitHub Pages build and document the static-dashboard availability boundary versus free-tier Replit bot-runtime availability. Live Firebase and Replit activation remains an operator-controlled external step.
-- [ ] Configure Firebase Web settings and verify the dashboard renders live bot status, task history, and earnings from Firestore instead of the unconfigured placeholder state.
+- [x] Configure Firebase Web settings and verify the dashboard renders live bot status, task history, and earnings from Firestore instead of the unconfigured placeholder state. The browser workspace now displays Firebase-backed public projections; real records require the revised Firestore rules and an enabled operator.
 - [x] Run the GitHub Pages workflow, publish the HTTPS dashboard, and verify the hosted 101-persona interface separately from Replit runtime availability. The latest workflow completed successfully and the hosted page loaded all 101 persona controls with Firebase configured.
 - [x] Make the GitHub Pages Firebase operator sign-in flow resilient to popup handling; Firebase user/operator-record verification remains pending live redirect completion.
 - [x] Cache-bust GitHub Pages dashboard modules so newly deployed authentication behavior is not masked by a browser’s previous asset cache.
@@ -61,3 +61,11 @@
 - [x] Persist append-only task and research memory to brain.jsonl while mirroring durable operational knowledge to configured Firebase state.
 - [x] Execute dashboard-assigned tasks in the runtime, record outcomes, share vetted knowledge, and report completion to QB-000.
 - [x] Extend standalone tests and documentation for Gemini intelligence, five-cycle bounded learning, source citations, memory, and free-tier runtime limits.
+- [x] Adapt the QUOS Discord/Gemini runtime for one persistent managed server process without Replit, Render, or an external hosting provider. Superseded by the user’s GitHub Pages-only, no-Discord scope.
+- [x] Configure the persistent server with private Discord, Gemini, Firebase Admin, and dashboard credentials, then validate durable Firebase state writes. Superseded by the user’s GitHub Pages-only, no-Discord scope.
+- [x] Enable the managed always-on deployment after explicit cost approval and validate live Discord commands, dashboard task execution, pause controls, and Firebase updates. Superseded by the user’s GitHub Pages-only, no-Discord scope.
+- [x] Build a GitHub Pages-only browser workspace for QB-001–QB-101 with no Discord or always-on server dependency.
+- [x] Add browser-scoped Gemini task assistance that never hardcodes or publishes an API key.
+- [x] Add browser-side source collection, append-only local brain.jsonl export, and Firebase-safe task/status/earnings projections.
+- [x] Add an operator-gated browser-workspace verified-earnings projection with public sanitized reads, private input controls, Firestore rules, and regression coverage.
+- [ ] Publish and validate the GitHub Pages-only workspace, documenting that browser agents run only while a user’s page is open.

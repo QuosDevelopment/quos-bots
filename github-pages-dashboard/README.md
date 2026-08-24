@@ -1,42 +1,60 @@
-# QUOS GitHub Pages dashboard
+# QUOS GitHub Pages browser workspace
 
-This directory is a **static GitHub Pages dashboard** for all 101 QUOS personas. It displays a dark blue-and-black glass interface, the latest Firebase-backed operational status, a sanitized task timeline, a verified earnings ledger, and authenticated controls for task assignment and reversible bot pausing.
+This directory is a **GitHub Pages-only browser workspace** for all 101 QUOS personas. It presents the dark blue-and-black control grid, sanitized Firebase task history and earnings, reversible persona pauses, browser-session task execution, and a local `brain.jsonl` export. It uses **no Discord Gateway, Replit runtime, Render service, or continuously running worker**.
 
-For local testing, serve this directory through an HTTP server. Browser module imports are intentionally not expected to load from a `file://` URL, whereas GitHub Pages serves them over HTTPS.
+> **Execution boundary.** GitHub Pages can serve the interface when a visitor opens it, but QB-001–QB-101 only perform work while an authenticated operator keeps the browser tab open. Closing the tab ends task processing; it does not create a background bot or scheduled worker.
 
-> **Static availability is not bot availability.** GitHub Pages can serve this frontend without a running backend, but the Discord Gateway and Gemini response logic remain in the separate Replit runtime. A free Replit runtime can still sleep, restart, or exhaust its provider allowance.
+## Browser Gemini workflow
+
+An operator selects **Assign task**, enters a task brief, and enters a Gemini key for that single task. The browser collects public web, Google News, and Wikipedia search links, then sends the role-scoped task and source bundle to Gemini. The dashboard clears the key from memory after the request and does not write it to Firebase, browser storage, GitHub, or exported `brain.jsonl`.
+
+Because a static site cannot protect a server credential, do **not** hardcode `GEMINI_API_KEY` in `firebase-config.js`, `app.js`, repository variables, or a GitHub secret intended for Pages. Use a browser-restricted Gemini key, enter it only when you run a task, and apply the provider restrictions appropriate to a public browser client.
+
+## Brain memory and task data
+
+Every completed browser task is retained locally in the browser’s storage as a detailed private record. Select **Export brain.jsonl** to download an append-only JSON Lines file containing local task records, source links, and responses. The browser sends only sanitized task history and persona status to the publicly readable Firebase workspace; complete task responses, source bundles, and local brain records are stored in the operator-only `browserWorkspace/brain` collection when its rules are published.
+
+| Collection | Browser access | Content |
+| --- | --- | --- |
+| `browserWorkspace/tasks` | Public read; operator create | Persona ID, task title, status, and source count. No full Gemini answer or API key. |
+| `browserWorkspace/botStatuses` | Public read; operator create/update | `active`, `working`, `idle`, or `attention` state for a persona. |
+| `browserWorkspace/earnings` | Public read; operator create | Verified USD amount, persona ID, and a short public accounting note. |
+| `browserWorkspace/brain` | Operator only | Detailed task response, source links, and local-memory projection. |
+| `dashboardControls` | Public read; operator create/update | Reversible `paused` or `active` control records. |
 
 ## Configure Firebase web access
 
-Create a Firebase Web app and copy its web configuration into `firebase-config.js`. Firebase documents that the web configuration object initializes a browser client; it is not a Firebase Admin service-account credential. Never add `FIREBASE_SERVICE_ACCOUNT_JSON_B64`, a Discord token, a Gemini key, or an operator password anywhere in this directory.
+Copy the Firebase Web app configuration into `firebase-config.js`, then enable **Google** under Firebase Authentication’s Sign-in method. Firebase’s web configuration initializes the browser client; it is not a Firebase Admin credential. Never add a service-account JSON document, Discord token, Gemini key, or operator password anywhere in this directory.[3]
 
-Enable **Google** under Firebase Authentication’s Sign-in method. Then deploy `firebase/github-pages.firestore.rules` to the same Firestore database. The rules intentionally expose only sanitized persona profiles, aggregate runtime metadata, and the `publicTasks` and `publicEarnings` subcollections. Raw research, reports, task briefs, private earnings notes, Discord credentials, and Gemini credentials remain unavailable to the static dashboard.
+Deploy the complete `firebase/github-pages.firestore.rules` file to the same Firestore database **before** using the browser workspace. The rules expose only sanitized public projections and restrict browser task writes, brain records, and status changes to an enabled operator. The dashboard reports a Firebase write issue while still retaining the local record if the rules have not yet been published.[4]
 
 ## Create the first dashboard operator
 
-After signing in to the GitHub Pages dashboard with Google, locate the user’s UID in Firebase Authentication. In Firestore, create `dashboardOperators/<UID>` with this exact document body:
+After signing in to the dashboard with Google, locate the account UID in Firebase Authentication. In Firestore, create `dashboardOperators/<UID>` with the following document. This manual console step prevents a browser client from granting itself operator access.
 
 ```json
 { "enabled": true }
 ```
 
-This manual Firebase Console step is deliberate. Browser clients cannot grant themselves operator status under the provided rules. An enabled operator can create a queue record through **Assign task** and set a persona to `paused` or `active` with the **Kill bot** button. “Kill bot” is a reversible pause: it stops new Discord commands for that persona when the Replit runtime next refreshes Firebase controls; it does not delete a persona, its knowledge, or its channel.
+An enabled operator can run browser tasks and use **Kill bot** as a reversible pause. The pause prevents a browser task from starting for that persona; it does not delete a persona, its task history, or its local brain records.
+
+Use **Record earning** only for an actual, verified USD ledger event. The amount and short accounting note are intentionally public dashboard data, so do not enter customer, bank, invoice, personal, or other sensitive details. The browser validates a positive amount, and the Firestore rules limit creation to enabled operators.
 
 ## Publish with GitHub Pages
 
-The repository includes `.github/workflows/deploy-quos-dashboard.yml`. In the GitHub repository, open **Settings → Pages**, select **GitHub Actions** as the build source, then push the workflow. The action regenerates `personas.js` from the canonical roster and deploys the `github-pages-dashboard/` artifact.
+The repository includes `.github/workflows/deploy-quos-dashboard.yml`. In the GitHub repository, open **Settings → Pages**, choose **GitHub Actions** as the source, and push the workflow. The workflow regenerates `personas.js` from the canonical roster and deploys the `github-pages-dashboard/` artifact.[1]
 
-GitHub Pages content is publicly reachable. If the repository uses GitHub Free, GitHub documents that the repository must be public for Pages publication. Treat this dashboard as public operational telemetry and avoid inserting private information into the records it displays.
+GitHub Pages content is publicly reachable. Keep private task answers and credentials out of public collections. If the repository uses GitHub Free, the repository must be public for Pages publication.[2]
 
 ## Status vocabulary
 
-| Status | Meaning |
+| Status | Meaning in the browser workspace |
 | --- | --- |
-| `active` | The Replit runtime recorded completed persona work. |
-| `working` | The runtime has recorded active work but not a final outcome. |
-| `idle` or `unreported` | No current runtime activity record has been received. |
-| `paused` | An authenticated operator requested a reversible pause. |
-| `attention` | The runtime recorded a failed work outcome. |
+| `active` | A browser task finished successfully in an operator’s open tab. |
+| `working` | An operator’s browser is currently collecting sources or generating a response. |
+| `idle` | The browser has no active task for the persona. |
+| `paused` | An authenticated operator set a reversible pause. |
+| `attention` | The latest browser task encountered an error. |
 
 ## References
 

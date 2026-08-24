@@ -10,4 +10,27 @@ describe("GitHub Pages dashboard authentication", () => {
     expect(source).not.toContain("signInWithPopup");
     expect(document).toMatch(/src="app\.js\?v=[^"]+"/);
   });
+
+  it("keeps browser Gemini assistance session-scoped and exposes local brain export", async () => {
+    const source = await readFile(new URL("../github-pages-dashboard/app.js", import.meta.url), "utf8");
+    const document = await readFile(new URL("../github-pages-dashboard/index.html", import.meta.url), "utf8");
+    expect(source).toContain('state.geminiKey = ""');
+    expect(source).toContain("brain.jsonl");
+    expect(source).toContain("browserGemini");
+    expect(source).not.toContain("GEMINI_API_KEY");
+    expect(document).toContain('id="brainExport"');
+    expect(document).toContain('id="geminiKey"');
+  });
+
+  it("stores sanitized task projections separately from operator-only brain records", async () => {
+    const source = await readFile(new URL("../github-pages-dashboard/app.js", import.meta.url), "utf8");
+    const rules = await readFile(new URL("../firebase/github-pages.firestore.rules", import.meta.url), "utf8");
+    expect(source).toContain("const publicTask");
+    expect(source).toContain('"browserWorkspace", "brain"');
+    expect(rules).toContain("match /browserWorkspace/tasks/{id}");
+    expect(rules).toContain("match /browserWorkspace/brain/{id}");
+    expect(rules).toContain("allow read, create: if operator()");
+    expect(rules).toContain("match /browserWorkspace/earnings/{id}");
+    expect(source).toContain("recordEarning");
+  });
 });
