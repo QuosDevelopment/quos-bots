@@ -55,9 +55,10 @@ byId("submitTask").addEventListener("click", async event => { event.preventDefau
 
 search.addEventListener("input", renderBots); groupFilter.addEventListener("change", renderBots); byId("signIn").addEventListener("click", async () => { if (!configured) return window.alert("Set Firebase Web configuration in firebase-config.js first."); if (state.user) return fb.signOut(window.quosAuth); await fb.signInWithPopup(window.quosAuth, new fb.GoogleAuthProvider()); });
 
-function bindSnapshot(source, callback) { fb.onSnapshot(source, snapshot => callback(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), error => console.warn("Firestore read blocked:", error.message)); }
+function bindSnapshot(source, callback) { fb.onSnapshot(source, snapshot => { byId("connection").textContent = "FIREBASE LIVE"; callback(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))); }, error => { byId("connection").textContent = "FIREBASE READ BLOCKED"; console.warn("Firestore read blocked:", error.message); }); }
 
 if (configured) {
+  byId("connection").textContent = "FIREBASE CONNECTING";
   const [appSdk, authSdk, firestoreSdk] = await Promise.all([import("https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js"), import("https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js"), import("https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js")]);
   fb = { ...appSdk, ...authSdk, ...firestoreSdk }; const app = fb.initializeApp(firebaseConfig); const db = fb.getFirestore(app); const auth = fb.getAuth(app); window.quosDb = db; window.quosAuth = auth;
   bindSnapshot(fb.collection(db, "quosBots", "runtimeState", "botProfiles"), rows => { state.profiles = new Map(rows.map(row => [row.id, row])); renderBots(); });
