@@ -53,3 +53,4 @@
 - [x] Validate the GitHub Pages build and document the static-dashboard availability boundary versus free-tier Replit bot-runtime availability. Live Firebase and Replit activation remains an operator-controlled external step.
 - [ ] Configure Firebase Web settings and verify the dashboard renders live bot status, task history, and earnings from Firestore instead of the unconfigured placeholder state.
 - [ ] Run the GitHub Pages workflow, publish the HTTPS dashboard, and verify the hosted 101-persona interface separately from Replit runtime availability.
+- [x] Make the GitHub Pages Firebase operator sign-in flow resilient to popup handling; Firebase user/operator-record verification remains pending live redirect completion.

@@ -53,7 +53,7 @@ async function togglePause(persona) { try { await requireOperator(); const curre
 
 byId("submitTask").addEventListener("click", async event => { event.preventDefault(); try { await requireOperator(); const brief = byId("taskBrief").value.trim(); if (!brief) throw new Error("Enter a task brief."); await fb.addDoc(fb.collection(window.quosDb, "dashboardTasks"), { personaId: state.selectedPersona.id, brief, status: "queued", operatorUid: state.user.uid, createdAt: fb.serverTimestamp() }); byId("dialogMessage").textContent = "Task queued for the runtime to collect."; setTimeout(() => dialog.close(), 700); } catch (error) { byId("dialogMessage").textContent = error.message; } });
 
-search.addEventListener("input", renderBots); groupFilter.addEventListener("change", renderBots); byId("signIn").addEventListener("click", async () => { if (!configured) return window.alert("Set Firebase Web configuration in firebase-config.js first."); if (state.user) return fb.signOut(window.quosAuth); await fb.signInWithPopup(window.quosAuth, new fb.GoogleAuthProvider()); });
+search.addEventListener("input", renderBots); groupFilter.addEventListener("change", renderBots); byId("signIn").addEventListener("click", async () => { if (!configured) return window.alert("Set Firebase Web configuration in firebase-config.js first."); if (state.user) return fb.signOut(window.quosAuth); try { byId("signIn").textContent = "Opening Google…"; await fb.signInWithRedirect(window.quosAuth, new fb.GoogleAuthProvider()); } catch (error) { console.warn("Firebase operator sign-in could not start:", error.message); byId("signIn").textContent = "Operator sign in"; window.alert("Google sign-in could not start. Confirm that this dashboard domain is authorized in Firebase Authentication."); } });
 
 function bindSnapshot(source, callback) { fb.onSnapshot(source, snapshot => { byId("connection").textContent = "FIREBASE LIVE"; callback(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))); }, error => { byId("connection").textContent = "FIREBASE READ BLOCKED"; console.warn("Firestore read blocked:", error.message); }); }
 
@@ -61,6 +61,7 @@ if (configured) {
   byId("connection").textContent = "FIREBASE CONNECTING";
   const [appSdk, authSdk, firestoreSdk] = await Promise.all([import("https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js"), import("https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js"), import("https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js")]);
   fb = { ...appSdk, ...authSdk, ...firestoreSdk }; const app = fb.initializeApp(firebaseConfig); const db = fb.getFirestore(app); const auth = fb.getAuth(app); window.quosDb = db; window.quosAuth = auth;
+  fb.getRedirectResult(auth).catch(error => { console.warn("Firebase operator redirect failed:", error.message); });
   bindSnapshot(fb.collection(db, "quosBots", "runtimeState", "botProfiles"), rows => { state.profiles = new Map(rows.map(row => [row.id, row])); renderBots(); });
   bindSnapshot(fb.query(fb.collection(db, "quosBots", "runtimeState", "publicTasks"), fb.orderBy("createdAt", "desc"), fb.limit(50)), rows => { state.tasks = rows; renderActivity(); });
   bindSnapshot(fb.query(fb.collection(db, "quosBots", "runtimeState", "publicEarnings"), fb.orderBy("createdAt", "desc"), fb.limit(50)), rows => { state.earnings = rows; renderActivity(); });
