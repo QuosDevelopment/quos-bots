@@ -27,3 +27,6 @@
 - [x] Revalidate the one-app, 101-persona runtime and production build after the free-tier configuration changes.
 - [x] Document the portable file-based state default and optional free-tier database configuration for Replit and Render, including environment variables and migration expectations.
 - [x] Add concrete optional database environment variables and host-specific Replit/Render migration guidance, while preserving file-based state as the zero-cost default.
+- [x] Start the verified one-token Discord Gateway client and synchronize the shared QUOS command set.
+- [x] Provision and verify the QB-000 plus 101 persona channels in the Quos Bots server.
+- [x] Verify live Discord command registration and all provisioned channels through the Discord API; runtime routing behavior is covered by tests. Update the secure deployment checkpoint.
