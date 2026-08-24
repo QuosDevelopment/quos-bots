@@ -1,6 +1,8 @@
 # State storage and database boundary
 
-The portable QUOS Bots runtime intentionally uses a **file-backed JSON state store** rather than a managed database. This is the only no-extra-cost storage mode that works immediately for local development and a basic Replit session. It stores channel mappings, research drafts, source citations, publications, reports, and the automatic-research rotation index in the path set by `QUOS_STATE_PATH`.
+The portable QUOS Bots runtime intentionally uses a **file-backed JSON state store** rather than a managed database. This is the only no-extra-cost storage mode that works immediately for local development and a basic Replit session. It stores channel mappings, research drafts, source citations, publications, reports, bot profiles, and the automatic-research rotation index in the path set by `QUOS_STATE_PATH`.
+
+Terry’s task and research memory is also appended to `BRAIN_PATH` as newline-delimited JSON (`./data/brain.jsonl` by default). Each record has an ID, timestamp, persona ID, source list where applicable, and a private or shared scope. The runtime only keeps the most recent `BRAIN_MEMORY_MAX` records in active memory, but it never rewrites historical JSONL lines. The brain file is server-side runtime data, not a public dashboard asset.
 
 | Deployment target | Default state configuration | Durability expectation | Recommended use |
 | --- | --- | --- | --- |
@@ -14,7 +16,7 @@ The portable QUOS Bots runtime intentionally uses a **file-backed JSON state sto
 
 The included `state.mjs` adapter supports PostgreSQL. Set `STATE_BACKEND=postgres` and add `DATABASE_URL` as a host secret; set `DATABASE_SSL=false` only for a local non-TLS PostgreSQL instance. The runtime automatically creates one `quos_state` table and stores the complete state document there. No additional schema migration is needed.
 
-To import existing file state, run `npm run migrate:file-to-postgres` from `standalone/` with `DATABASE_URL` set. It reads `MIGRATION_STATE_PATH` when provided, otherwise `QUOS_STATE_PATH`, then imports the familiar `channels`, `knowledge`, `reports`, `runs`, and `nextPersonaIndex` shape before scheduled research starts.
+To import existing file state, run `npm run migrate:file-to-postgres` from `standalone/` with `DATABASE_URL` set. It reads `MIGRATION_STATE_PATH` when provided, otherwise `QUOS_STATE_PATH`, then imports the familiar `channels`, `knowledge`, `reports`, `runs`, `brain`, and `nextPersonaIndex` shape before scheduled research starts. Preserve a copy of `brain.jsonl` alongside a migration because it is a separate append-only audit trail.
 
 For **Render**, create a PostgreSQL service, copy its connection string into the web service’s `DATABASE_URL` environment variable, and set `STATE_BACKEND=postgres`. Render documents that free PostgreSQL databases expire after 30 days and do not offer backups, so this is a temporary test path, not production storage.[1]
 

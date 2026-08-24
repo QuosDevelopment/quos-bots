@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.mjs",
-    "check": "node --check index.mjs && node --check research.mjs && node --check state.mjs",
+    "check": "node --check index.mjs && node --check research.mjs && node --check terry.mjs && node --check state.mjs",
     "test": "node smoke.mjs",
     "bootstrap": "node index.mjs --bootstrap-only",
     "migrate:file-to-postgres": "node migrate-file-to-postgres.mjs"

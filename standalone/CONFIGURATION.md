@@ -11,6 +11,8 @@ Set these values in your local shell or **Replit Secrets** for the Discord runti
 | `DASHBOARD_USERNAME` | Yes | HTTP Basic Auth username for the portable status console and Render dashboard. |
 | `DASHBOARD_PASSWORD` | Yes | HTTP Basic Auth password for the portable status console and Render dashboard. |
 | `QUOS_STATE_PATH` | No | JSON state-store path; default: `./data/quos-state.json`. See [STORAGE.md](./STORAGE.md) for local, Replit, and Render durability limits. |
+| `BRAIN_PATH` | No | Append-only JSON Lines learning-memory path; default: `./data/brain.jsonl`. Never serve this file from the public dashboard. |
+| `BRAIN_MEMORY_MAX` | No | Number of most-recent memory records retained in runtime state; default: `1000`. The JSONL file remains append-only. |
 | `STATE_BACKEND` | Yes for Firebase | Set `firebase` for the requested durable Firebase Firestore backend. `file` is only a local-development fallback; `postgres` remains an optional legacy adapter. |
 | `FIREBASE_SERVICE_ACCOUNT_JSON_B64` | If `STATE_BACKEND=firebase` | Base64-encoded Firebase Admin service-account JSON. Add in Replit and Render private-secret fields only. |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | No | Local-development alternative to the base64 value; never commit the JSON. |
@@ -22,11 +24,15 @@ Set these values in your local shell or **Replit Secrets** for the Discord runti
 | `PUBLIC_SEARCH_ENABLED` | No | Set `false` to disable public source discovery. |
 | `GEMINI_API_KEY` | Recommended | Google AI Studio Gemini API key used for role-specific synthesis. Keep it in Replit Secrets only. |
 | `GEMINI_MODEL` | No | Gemini text model name; default: `gemini-2.5-flash`. Free-tier availability and limits vary by project. |
+| `TERRY_CYCLES` | No | Bounded Gemini learning iterations per assigned dashboard task; accepted range is `1`–`5`, with `5` as the default. |
+| `YOUTUBE_API_KEY` | No | Enables collection of individual public YouTube video titles and descriptions. Without it, the runtime records an attributable YouTube search link only. |
+| `GOOGLE_CSE_API_KEY` | No | Optional Google Programmable Search credential for direct Google web-result metadata. Set together with `GOOGLE_CSE_ID`; do not confuse this with the Gemini key. |
+| `GOOGLE_CSE_ID` | No | Programmable Search engine identifier used with `GOOGLE_CSE_API_KEY`. |
 | `LLM_API_KEY` | No | Optional OpenAI-compatible fallback for synthesis and role answers. |
 | `LLM_BASE_URL` | No | OpenAI-compatible API base URL; defaults to OpenAI. |
 | `LLM_MODEL` | No | Model name for synthesis; defaults to `gpt-4o-mini`. |
 
-> The portable runtime requires the three Discord values, a port, dashboard credentials, and Firebase Admin credentials for durable multi-host use. It will run source collection without an AI key, but `/qb` synthesis and narrative research summaries require `GEMINI_API_KEY` or the optional OpenAI-compatible fallback.
+> The portable runtime requires the three Discord values, a port, dashboard credentials, and Firebase Admin credentials for durable multi-host use. It can collect source metadata without an AI key, but `/qb` synthesis, five-cycle assigned-task reasoning, and narrative research summaries require `GEMINI_API_KEY` or the optional OpenAI-compatible fallback. Set the Gemini key once in Replit Secrets as `GEMINI_API_KEY`; do not put any provider key in GitHub Pages, Discord, `brain.jsonl`, or a committed `.env` file.
 
 ## Safe Firebase service-account encoding
 

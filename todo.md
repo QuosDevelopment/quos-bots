@@ -54,4 +54,10 @@
 - [ ] Configure Firebase Web settings and verify the dashboard renders live bot status, task history, and earnings from Firestore instead of the unconfigured placeholder state.
 - [ ] Run the GitHub Pages workflow, publish the HTTPS dashboard, and verify the hosted 101-persona interface separately from Replit runtime availability.
 - [x] Make the GitHub Pages Firebase operator sign-in flow resilient to popup handling; Firebase user/operator-record verification remains pending live redirect completion.
-- [ ] Cache-bust GitHub Pages dashboard modules so newly deployed authentication behavior is not masked by a browser’s previous asset cache.
+- [x] Cache-bust GitHub Pages dashboard modules so newly deployed authentication behavior is not masked by a browser’s previous asset cache.
+- [x] Add a secure Gemini key configuration path for the portable QUOS runtime; never expose the key in GitHub Pages or repository files. Replit must receive the same key through its own Secrets panel.
+- [x] Implement Terry/QB-000’s bounded five-cycle Gemini task pipeline for all QB-001–QB-101 personas.
+- [x] Add cited multi-source public research adapters, including Wikipedia, Google News RSS, YouTube metadata, and optional Google Custom Search when separately configured.
+- [x] Persist append-only task and research memory to brain.jsonl while mirroring durable operational knowledge to configured Firebase state.
+- [x] Execute dashboard-assigned tasks in the runtime, record outcomes, share vetted knowledge, and report completion to QB-000.
+- [x] Extend standalone tests and documentation for Gemini intelligence, five-cycle bounded learning, source citations, memory, and free-tier runtime limits.

@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -13,16 +13,21 @@ export const defaultState = {
   botProfiles: {},
   tasks: [],
   earnings: [],
+  brain: [],
   health: { gateway: "not_started", lastGatewayEventAt: null },
 };
 
-const firebaseCollections = ["botProfiles", "knowledge", "reports", "runs", "tasks", "earnings", "publicTasks", "publicEarnings"];
+const firebaseCollections = ["botProfiles", "knowledge", "reports", "runs", "tasks", "earnings", "brain", "publicTasks", "publicEarnings"];
 let firebaseSnapshot = null;
 let pool;
 let firestore;
 
 export function statePath() {
   return resolve(process.env.QUOS_STATE_PATH || "./data/quos-state.json");
+}
+
+export function brainPath() {
+  return resolve(process.env.BRAIN_PATH || "./data/brain.jsonl");
 }
 
 const usePostgres = () => process.env.STATE_BACKEND === "postgres";
@@ -41,6 +46,7 @@ function normalizeState(payload = {}) {
     runs: Array.isArray(payload.runs) ? payload.runs : [],
     tasks: Array.isArray(payload.tasks) ? payload.tasks : [],
     earnings: Array.isArray(payload.earnings) ? payload.earnings : [],
+    brain: Array.isArray(payload.brain) ? payload.brain : [],
   };
 }
 
@@ -163,9 +169,11 @@ export async function loadState() {
     return normalizeState(result.rows[0]?.payload);
   }
   try {
-    return normalizeState(JSON.parse(await readFile(statePath(), "utf8")));
+    const state = normalizeState(JSON.parse(await readFile(statePath(), "utf8")));
+    if (!state.brain.length) state.brain = await loadBrainMemory();
+    return state;
   } catch (error) {
-    if (error?.code === "ENOENT") return structuredClone(defaultState);
+    if (error?.code === "ENOENT") return { ...structuredClone(defaultState), brain: await loadBrainMemory() };
     throw error;
   }
 }
@@ -188,6 +196,28 @@ export async function saveState(state) {
 export function appendBounded(items, item, max = 250) {
   items.unshift(item);
   items.splice(max);
+}
+
+export async function loadBrainMemory() {
+  try {
+    const max = Math.max(1, Number(process.env.BRAIN_MEMORY_MAX || "1000"));
+    const records = (await readFile(brainPath(), "utf8")).split("\n").filter(Boolean).flatMap(line => {
+      try { return [JSON.parse(line)]; } catch { return []; }
+    });
+    return records.slice(-max).reverse();
+  } catch (error) {
+    if (error?.code === "ENOENT") return [];
+    throw error;
+  }
+}
+
+export async function appendBrainMemory(state, record) {
+  const item = { id: record.id || crypto.randomUUID(), createdAt: record.createdAt || new Date().toISOString(), ...record };
+  appendBounded(state.brain, item, Math.max(1, Number(process.env.BRAIN_MEMORY_MAX || "1000")));
+  const file = brainPath();
+  await mkdir(dirname(file), { recursive: true });
+  await appendFile(file, `${JSON.stringify(item)}\n`, "utf8");
+  return item;
 }
 
 export function ensureBotProfiles(state, personas) {

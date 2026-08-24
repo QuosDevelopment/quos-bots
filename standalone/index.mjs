@@ -4,7 +4,8 @@ import { ChannelType, Client, Events, GatewayIntentBits, REST, Routes, SlashComm
 import cron from "node-cron";
 import { PERSONAS, PERSONA_BY_ID } from "./personas.mjs";
 import { answerPersona, researchPersona } from "./research.mjs";
-import { appendBounded, ensureBotProfiles, fetchDashboardControls, fetchQueuedDashboardTasks, loadState, markDashboardTask, recordEarning, recordTask, saveState } from "./state.mjs";
+import { runTerryLearningCycles, recentMemoryContext } from "./terry.mjs";
+import { appendBounded, appendBrainMemory, ensureBotProfiles, fetchDashboardControls, fetchQueuedDashboardTasks, loadState, markDashboardTask, recordEarning, recordTask, saveState } from "./state.mjs";
 
 const required = ["DISCORD_BOT_TOKEN", "DISCORD_APPLICATION_ID", "DISCORD_GUILD_ID", "PORT"];
 for (const key of required) if (!process.env[key]) throw new Error(`${key} is required. Copy .env.example to .env and set it before starting.`);
@@ -37,16 +38,55 @@ async function writeReport(report) {
   await saveState(state);
   const qb000ChannelId = state.channels["QB-000"];
   const channel = qb000ChannelId ? await client.channels.fetch(qb000ChannelId).catch(() => null) : null;
-  if (channel?.isTextBased()) await channel.send(`**${report.kind.toUpperCase()} — ${report.personaId}**\n${report.summary}`);
+  if (channel?.isTextBased()) {
+    const message = `**${report.kind.toUpperCase()} — ${report.personaId}**\n${report.summary}`;
+    await channel.send(message.length > 1900 ? `${message.slice(0, 1896)}…` : message);
+  }
 }
 
 async function recordResearch(persona, question, scheduled = false) {
   const result = await researchPersona(persona, question);
   appendBounded(state.knowledge, result);
+  await appendBrainMemory(state, { type: "research", personaId: persona.id, question, summary: result.summary, sources: result.sources, scope: "private", createdAt: result.createdAt });
   appendBounded(state.runs, { id: result.id, personaId: persona.id, question, scheduled, status: "completed", createdAt: result.createdAt });
   recordTask(state, persona, scheduled ? "scheduled_research" : "research", "completed", question);
   await writeReport({ personaId: persona.id, kind: "research", severity: result.sources.length >= 2 ? "info" : "watch", summary: `${result.summary}\nSources: ${result.sources.map(source => source.url).join(" | ") || "none"}` });
   return result;
+}
+
+async function executePersonaTask(persona, task, origin) {
+  recordTask(state, persona, origin, "working", task);
+  await saveState(state);
+  try {
+    const learning = await runTerryLearningCycles({ persona, task, memory: state.brain });
+    for (const cycle of learning.cycles) await appendBrainMemory(state, cycle);
+    const knowledge = {
+      id: learning.id,
+      personaId: persona.id,
+      role: persona.role,
+      question: task,
+      summary: learning.response,
+      sources: learning.sources,
+      status: "published",
+      coordinatorId: "QB-000",
+      vettedAt: learning.createdAt,
+      automatedReview: "Terry/QB-000 published a source-attributed task result after five bounded learning cycles.",
+      createdAt: learning.createdAt,
+    };
+    appendBounded(state.knowledge, knowledge);
+    await appendBrainMemory(state, { type: "task_completion", personaId: persona.id, coordinatorId: "QB-000", task, summary: learning.response, sources: learning.sources, scope: "shared", cycleCount: learning.cycleCount, createdAt: learning.createdAt });
+    recordTask(state, persona, origin, "completed", task);
+    await writeReport({ personaId: persona.id, kind: "task_completion", severity: learning.sources.length ? "info" : "watch", summary: `Terry completed ${learning.cycleCount} bounded learning cycles for: ${task}\n${learning.response}\nSources: ${learning.sources.map(source => source.url).join(" | ") || "none"}` });
+    await saveState(state);
+    return learning;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "unknown error";
+    await appendBrainMemory(state, { type: "task_failure", personaId: persona.id, coordinatorId: "QB-000", task, summary: detail, scope: "private" });
+    recordTask(state, persona, origin, "failed", task);
+    await writeReport({ personaId: persona.id, kind: "escalation", severity: "watch", summary: `Terry could not complete task: ${task}\nReason: ${detail}` });
+    await saveState(state);
+    throw error;
+  }
 }
 
 async function runScheduledResearch() {
@@ -73,12 +113,21 @@ async function refreshDashboardControlPlane() {
       await markDashboardTask(task.id, "rejected", "Unknown or coordinator persona ID.");
       continue;
     }
-    recordTask(state, persona, "dashboard_assignment", "assigned", task.brief);
-    await writeReport({ personaId: persona.id, kind: "activity", severity: "info", summary: `Dashboard task assigned to ${persona.id}: ${task.brief}` });
+    if (dashboardControls.get(persona.id)?.status === "paused") {
+      await markDashboardTask(task.id, "deferred", `${persona.id} is paused by the dashboard operator.`);
+      continue;
+    }
+    await markDashboardTask(task.id, "working", "Terry/QB-000 started five bounded Gemini learning cycles with cited public-source collection.");
     const channelId = state.channels[persona.id];
     const channel = channelId ? await client.channels.fetch(channelId).catch(() => null) : null;
-    if (channel?.isTextBased()) await channel.send(`**Dashboard task assigned**\n${task.brief}\n\nStatus: assigned. Use this channel to continue the work.`);
-    await markDashboardTask(task.id, "assigned", "Delivered to the persona channel and reported to QB-000.");
+    if (channel?.isTextBased()) await channel.send(`**Dashboard task started**\n${task.brief}\n\nTerry/QB-000 is running five bounded learning cycles with cited public-source collection.`);
+    try {
+      const result = await executePersonaTask(persona, task.brief, "dashboard_assignment");
+      if (channel?.isTextBased()) await channel.send(`**Dashboard task completed**\n${result.response}\n\nSources:\n${result.sources.slice(0, 5).map((source, index) => `[${index + 1}] ${source.title}\n${source.url}`).join("\n") || "No public sources returned."}`);
+      await markDashboardTask(task.id, "completed", `Completed ${result.cycleCount} bounded learning cycles; cited result was published to shared QUOS knowledge and reported to QB-000.`);
+    } catch (error) {
+      await markDashboardTask(task.id, "failed", error instanceof Error ? error.message : "Unknown runtime failure.");
+    }
   }
   await saveState(state);
 }
@@ -141,9 +190,12 @@ client.on(Events.InteractionCreate, async interaction => {
 
   if (interaction.commandName === "status") return reply(interaction, `**${persona.id} — ${persona.role}**\nChannel: #${persona.channelSlug}\nKnowledge: ${state.knowledge.filter(item => item.personaId === persona.id).length} drafts / publications.`);
   if (interaction.commandName === "qb") {
-    const answer = await answerPersona(persona, interaction.options.getString("prompt", true));
-    recordTask(state, persona, "persona_answer", "completed", interaction.options.getString("prompt", true));
+    const prompt = interaction.options.getString("prompt", true);
+    const answer = await answerPersona(persona, prompt, recentMemoryContext(state.brain, persona.id));
+    await appendBrainMemory(state, { type: "conversation", personaId: persona.id, prompt, summary: answer, scope: "private" });
+    recordTask(state, persona, "persona_answer", "completed", prompt);
     await writeReport({ personaId: persona.id, kind: "activity", severity: "info", summary: `Responded to a /qb request in #${persona.channelSlug}.` });
+    await saveState(state);
     return reply(interaction, `**${persona.id} — ${persona.role}**\n${answer}`);
   }
   if (interaction.commandName === "research") {
@@ -199,6 +251,7 @@ http.createServer((req, res) => {
       bots: Object.values(state.botProfiles).sort((left, right) => left.id.localeCompare(right.id)),
       knowledge: state.knowledge.length,
       publishedKnowledge: state.knowledge.filter(item => item.status === "published").length,
+      brainRecords: state.brain.length,
       reports: state.reports.slice(0, 8),
       taskHistory: state.tasks.slice(0, 25),
       earnings: { currency: "USD", total: state.earnings.reduce((sum, entry) => sum + (entry.currency === "USD" ? entry.amount : 0), 0), entries: state.earnings.slice(0, 25) },
