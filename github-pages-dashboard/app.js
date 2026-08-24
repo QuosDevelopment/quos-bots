@@ -1,4 +1,4 @@
-import { firebaseConfig } from "./firebase-config.js";
+import { firebaseConfig } from "./firebase-config.js?v=redirect-auth-20260824";
 import { PERSONAS } from "./personas.js";
 
 const configured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("REPLACE_");

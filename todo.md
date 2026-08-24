@@ -54,3 +54,4 @@
 - [ ] Configure Firebase Web settings and verify the dashboard renders live bot status, task history, and earnings from Firestore instead of the unconfigured placeholder state.
 - [ ] Run the GitHub Pages workflow, publish the HTTPS dashboard, and verify the hosted 101-persona interface separately from Replit runtime availability.
 - [x] Make the GitHub Pages Firebase operator sign-in flow resilient to popup handling; Firebase user/operator-record verification remains pending live redirect completion.
+- [ ] Cache-bust GitHub Pages dashboard modules so newly deployed authentication behavior is not masked by a browser’s previous asset cache.
