@@ -80,70 +80,71 @@ async function respond(interaction: ChatInputCommandInteraction, content: string
 
 async function handleInteraction(interaction: ChatInputCommandInteraction) {
   const { guildId } = discordEnvironment();
-  const persona = await personaForChannel(interaction.channelId);
-  const route = resolvePersonaCommandRoute({
-    interactionGuildId: interaction.guildId,
-    configuredGuildId: guildId,
-    channelPersonaId: persona?.id,
-  });
-  if (!route.allowed) {
-    if (route.reason === "wrong_guild") return;
-    await respond(interaction, "This command is scoped to a provisioned QUOS persona channel. Use the QB-000 channel or a persona channel.");
-    return;
-  }
-  if (!persona) return;
-
-  if (interaction.commandName === "status") {
-    const commands = JSON.parse(persona.commandsJson) as string[];
-    await respond(interaction, `**${persona.id} — ${persona.role}**\nStatus: ${persona.status}\nScoped commands: ${commands.join(", ")}`);
-    return;
-  }
-
-  if (interaction.commandName === "knowledge") {
-    const results = await retrieveSharedKnowledge(persona.id, interaction.options.getString("query") ?? "");
-    if (results.length === 0) {
-      await respond(interaction, "No published shared knowledge matched this request. Run /research to create a draft, then have QB-000 vet its sources and publish it.");
+  if (!guildId || interaction.guildId !== guildId) return;
+  await interaction.deferReply();
+  try {
+    const persona = await personaForChannel(interaction.channelId);
+    const route = resolvePersonaCommandRoute({
+      interactionGuildId: interaction.guildId,
+      configuredGuildId: guildId,
+      channelPersonaId: persona?.id,
+    });
+    if (!route.allowed) {
+      await respond(interaction, "This command is scoped to a provisioned QUOS persona channel. Use the QB-000 channel or a persona channel.");
       return;
     }
-    const content = results.map(item => formatKnowledgeAttribution(item)).join("\n\n");
-    await respond(interaction, content);
-    return;
-  }
+    if (!persona) return;
 
-  if (interaction.commandName === "qb") {
-    await interaction.deferReply();
-    try {
+    if (interaction.commandName === "status") {
+      const commands = JSON.parse(persona.commandsJson) as string[];
+      await respond(interaction, `**${persona.id} — ${persona.role}**\nStatus: ${persona.status}\nScoped commands: ${commands.join(", ")}`);
+      return;
+    }
+
+    if (interaction.commandName === "knowledge") {
+      const results = await retrieveSharedKnowledge(persona.id, interaction.options.getString("query") ?? "");
+      if (results.length === 0) {
+        await respond(interaction, "No published shared knowledge matched this request. Run /research to create a draft, then have QB-000 vet its sources and publish it.");
+        return;
+      }
+      const content = results.map(item => formatKnowledgeAttribution(item)).join("\n\n");
+      await respond(interaction, content);
+      return;
+    }
+
+    if (interaction.commandName === "qb") {
       const answer = await answerAsPersona(persona.id, interaction.options.getString("prompt", true));
       await respond(interaction, `**${persona.id} — ${persona.role}**\n${answer}`);
-    } catch (error) {
-      await respond(interaction, `QB-000 has recorded a response issue: ${error instanceof Error ? error.message : "unknown error"}`);
+      return;
     }
-    return;
-  }
 
-  if (interaction.commandName === "research") {
-    await interaction.deferReply();
-    try {
+    if (interaction.commandName === "research") {
       const result = await runGroundedResearch(persona.id, interaction.options.getString("question", true));
       await respond(interaction, `**${persona.id} research draft**\n${result.summary}\n\nSources awaiting QB-000 vetting:\n${result.sources.map(source => `• ${source.title} — ${source.url}`).join("\n") || "No usable sources returned."}`);
-    } catch (error) {
-      await respond(interaction, `QB-000 has recorded a research issue: ${error instanceof Error ? error.message : "unknown error"}`);
+      return;
     }
-    return;
-  }
 
-  if (interaction.commandName === "report") {
-    const severity = (interaction.options.getString("severity") ?? "info") as "info" | "watch" | "high" | "critical";
-    const note = interaction.options.getString("note", true);
-    await recordReport({
-      personaId: persona.id,
-      kind: "escalation",
-      severity,
-      title: `Discord escalation — ${persona.id}`,
-      summary: note,
-      payload: { channelId: interaction.channelId, submittedBy: interaction.user.id },
-    });
-    await respond(interaction, `QB-000 received this ${severity} report from ${persona.id}.`);
+    if (interaction.commandName === "report") {
+      const severity = (interaction.options.getString("severity") ?? "info") as "info" | "watch" | "high" | "critical";
+      const note = interaction.options.getString("note", true);
+      await recordReport({
+        personaId: persona.id,
+        kind: "escalation",
+        severity,
+        title: `Discord escalation — ${persona.id}`,
+        summary: note,
+        payload: { channelId: interaction.channelId, submittedBy: interaction.user.id },
+      });
+      await respond(interaction, `QB-000 received this ${severity} report from ${persona.id}.`);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error("[Discord] Interaction handling failed:", error);
+    try {
+      await respond(interaction, `QB-000 recorded a command issue: ${message}`);
+    } catch (responseError) {
+      console.error("[Discord] Interaction error response failed:", responseError);
+    }
   }
 }
 

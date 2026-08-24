@@ -30,3 +30,7 @@
 - [x] Start the verified one-token Discord Gateway client and synchronize the shared QUOS command set.
 - [x] Provision and verify the QB-000 plus 101 persona channels in the Quos Bots server.
 - [x] Verify live Discord command registration and all provisioned channels through the Discord API; runtime routing behavior is covered by tests. Update the secure deployment checkpoint.
+- [ ] Verify the published runtime configuration and document why it cannot retain a Discord Gateway connection while autoscaled to zero.
+- [ ] Verify the portable external-host runtime supports `/status` and `/research` once the required secrets are set in Replit or Render.
+- [ ] Provide the exact Replit/Render free-tier handoff steps and clearly document the non-24/7 sleep limitation.
+- [x] Acknowledge Discord interactions before database routing so `/status` and `/research` cannot expire during a cold or slow backend response.
