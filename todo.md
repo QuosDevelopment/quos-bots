@@ -1,0 +1,29 @@
+# Project TODO
+
+- [x] Define secure one-application Discord architecture with a single token and Gateway connection.
+- [x] Create the QB-000 coordinator identity, routing policy, escalation rules, and reporting contract.
+- [x] Configure the full QB-001–QB-101 roster with unique IDs, roles, role-specific operating instructions, and scoped commands.
+- [x] Create the database schema for personas, Discord setup state, channels, knowledge items, sources, citations, reports, activity events, and escalation records.
+- [x] Implement shared knowledge publishing, retrieval, attribution, reuse tracking, and role-aware access controls.
+- [x] Implement internet-grounded research intake with source vetting, citation records, and persona knowledge-base updates.
+- [x] Implement structured persona activity, research, and escalation reporting to QB-000.
+- [x] Implement Discord channel provisioning for QB-000 and every persona, with idempotent setup progress tracking.
+- [x] Implement Discord slash-command routing from persona channels to the selected internal persona.
+- [x] Implement the managed-hosting service lifecycle, health checks, and secure Discord credential configuration. Superseded by the requested free-tier/local runtime package.
+- [x] Build a protected control dashboard for persona status, Discord setup progress, channel bootstrap, knowledge activity, reporting health, and operational oversight.
+- [x] Apply the International Typographic Style design system: white canvas, red square accents, black sans-serif type, asymmetric grid, fine dividers, and generous negative space.
+- [x] Add Vitest coverage for roster integrity, knowledge attribution, report routing, Discord provisioning plans, and command routing.
+- [x] Verify the dashboard visually at desktop and mobile breakpoints and verify the production build. Protected entry states were inspected; the authenticated operator view requires real credentials.
+- [x] Configure the Discord application credentials and server identifier, deploy the persistent process, provision channels, and conduct end-to-end Discord verification. Deferred to the local/Replit/Render operator because credentials were not supplied; the complete deployable package is delivered.
+- [x] Implement and enforce persona-specific knowledge access rules for Discord operations and dashboard procedures.
+- [x] Add explicit QB-000 delivery metadata to all activity, research, escalation, and system reports.
+- [x] Add Vitest coverage for persona channel command routing and attribution-preserving knowledge retrieval.
+- [x] Document and enforce the intended boundary between persona-scoped Discord knowledge sharing and administrator-only dashboard knowledge oversight.
+- [x] Add integration-oriented Vitest coverage for the exported Discord routing decision path and the knowledge retrieval filtering path used at runtime.
+- [x] Replace the paid persistent-hosting path with a free-tier/local runtime configuration for Replit and Render.
+- [x] Add a safe automatic research scheduler that runs while the process is active, prevents overlapping work, and records all source-cited outcomes for QB-000 review.
+- [x] Add local, Replit, and Render environment templates and deployment instructions for the single Discord token, application ID, guild ID, database, and schedule settings.
+- [x] Document free-tier sleep and wake-up behavior, including its effect on Discord Gateway availability and research cadence.
+- [x] Revalidate the one-app, 101-persona runtime and production build after the free-tier configuration changes.
+- [x] Document the portable file-based state default and optional free-tier database configuration for Replit and Render, including environment variables and migration expectations.
+- [x] Add concrete optional database environment variables and host-specific Replit/Render migration guidance, while preserving file-based state as the zero-cost default.

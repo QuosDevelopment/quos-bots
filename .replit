@@ -1,0 +1,5 @@
+entrypoint = "standalone/index.mjs"
+run = "cd standalone && npm start"
+
+[nix]
+channel = "stable-24_05"

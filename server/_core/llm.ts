@@ -32,7 +32,7 @@ export type Message = {
   tool_call_id?: string;
 };
 
-export type Tool = {
+export type FunctionTool = {
   type: "function";
   function: {
     name: string;
@@ -40,6 +40,18 @@ export type Tool = {
     parameters?: Record<string, unknown>;
   };
 };
+
+export type WebSearchTool = {
+  type: "web_search";
+  web_search?: {
+    max_uses?: number;
+    allowed_domains?: string[];
+    blocked_domains?: string[];
+    search_context_size?: "low" | "medium" | "high";
+  };
+};
+
+export type Tool = FunctionTool | WebSearchTool;
 
 export type ToolChoicePrimitive = "none" | "auto" | "required";
 export type ToolChoiceByName = { name: string };
@@ -198,7 +210,9 @@ const normalizeToolChoice = (
 
     return {
       type: "function",
-      function: { name: tools[0].function.name },
+      function: {
+        name: "function" in tools[0] ? tools[0].function.name : "web_search",
+      },
     };
   }
 
