@@ -76,6 +76,6 @@
 - [x] **Superseded:** Add a password-reset request action for the Firebase Email/Password recovery user, without exposing or retaining a password. The temporary recovery control was implemented but removed before the user used it.
 - [x] Remove all Firebase Authentication, Google, email/password, sign-in, and sign-out interfaces from the GitHub Pages QUOS workspace.
 - [x] Convert the public browser workspace to read-only Firebase access, disabling task, pause, earnings, and private-brain writes without an authenticated server-side operator.
-- [ ] Publish and validate the authentication-free GitHub Pages workspace and updated Firestore policy.
-- [ ] Document that the temporary Email/Password recovery flow was removed by user request and that the final browser workspace has no authentication or Firebase writes.
-- [ ] Fix the hosted dashboard’s stale Firebase configuration module cache and revalidate public read-only Firebase initialization.
+- [x] Publish and validate the authentication-free GitHub Pages workspace and updated Firestore policy. The hosted `bf2a7f5` release displays FIREBASE LIVE, 101 persona cards, and no authentication UI; the final no-write policy was published at 2026-08-25 10:34 AM.
+- [x] Document that the temporary Email/Password recovery flow was removed by user request and that the final browser workspace has no authentication or Firebase writes.
+- [x] Fix the hosted dashboard’s stale Firebase configuration module cache and revalidate public read-only Firebase initialization. The cache-busted configuration module now initializes Firebase and public root-collection reads return clean empty snapshots.

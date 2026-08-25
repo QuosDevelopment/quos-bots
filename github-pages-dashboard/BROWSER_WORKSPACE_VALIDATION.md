@@ -43,3 +43,13 @@ On the hosted dashboard, the Firebase Auth and Firestore client objects both ini
 ## Valid browser collection policy — 2026-08-25
 
 After explicit approval, the corrected Firestore policy was published successfully. The Rules editor recorded a new active revision at **Today • 2:20 AM** and no longer displayed an unpublished-changes action. The active rule source uses valid `browserTasks`, `browserBotStatuses`, `browserEarnings`, and `browserBrain` paths.
+
+## Final authentication-free, read-only release — 2026-08-25
+
+The authenticated operator model described in the preceding historical entries is **superseded** by the owner’s later request to remove authentication completely. The final GitHub Pages dashboard release from commit `bf2a7f5`, opened at `https://quosdevelopment.github.io/quos-bots/?v=bf2a7f5`, rendered all **101** personas, **101 Assign task** controls, **101 Kill bot** controls, and **Export brain.jsonl**. The page showed **FIREBASE LIVE**, reported the Gateway as **browser only**, and had no Google, Email/Password, sign-in, sign-out, password-reset, or operator-control UI.
+
+After the owner explicitly approved the security change, Firestore Rules history recorded a new active revision at **2026-08-25 10:34 AM**, with no unpublished changes. This final source policy has no `operator()` predicate or Firebase Authentication dependency. It permits only sanitized public reads from `quosBots/runtimeState`, `browserTasks`, `browserBotStatuses`, `browserEarnings`, and `dashboardControls`; it denies every browser write and denies `browserBrain` reads and writes.
+
+Using the live dashboard’s Firebase Web SDK and `window.quosDb`, direct `getDocs` reads of `browserTasks`, `browserBotStatuses`, and `browserEarnings` each returned cleanly with a size of **0**. This confirms valid root collection paths and live read access without fabricating any task, status, or earnings data. No write was attempted because writes are intentionally disabled in the final no-auth design.
+
+The temporary Email/Password recovery flow was removed at the user’s request together with all other authentication controls. Its legacy identity and `dashboardOperators` document are inactive and irrelevant to this design. They were not deleted because no deletion was requested. Browser task output, local pause state, and Gemini response records remain local to the currently open tab; the user may export the local record as `brain.jsonl`.
