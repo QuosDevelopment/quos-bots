@@ -12,14 +12,14 @@ Because a static site cannot protect a server credential, do **not** hardcode `G
 
 ## Brain memory and task data
 
-Every completed browser task is retained locally in the browser’s storage as a detailed private record. Select **Export brain.jsonl** to download an append-only JSON Lines file containing local task records, source links, and responses. The browser sends only sanitized task history and persona status to the publicly readable Firebase workspace; complete task responses, source bundles, and local brain records are stored in the operator-only `browserWorkspace/brain` collection when its rules are published.
+Every completed browser task is retained locally in the browser’s storage as a detailed private record. Select **Export brain.jsonl** to download an append-only JSON Lines file containing local task records, source links, and responses. The browser sends only sanitized task history and persona status to publicly readable Firebase collections; complete task responses, source bundles, and local brain records are stored in the operator-only `browserBrain` collection when its rules are published.
 
 | Collection | Browser access | Content |
 | --- | --- | --- |
-| `browserWorkspace/tasks` | Public read; operator create | Persona ID, task title, status, and source count. No full Gemini answer or API key. |
-| `browserWorkspace/botStatuses` | Public read; operator create/update | `active`, `working`, `idle`, or `attention` state for a persona. |
-| `browserWorkspace/earnings` | Public read; operator create | Verified USD amount, persona ID, and a short public accounting note. |
-| `browserWorkspace/brain` | Operator only | Detailed task response, source links, and local-memory projection. |
+| `browserTasks` | Public read; operator create | Persona ID, task title, status, and source count. No full Gemini answer or API key. |
+| `browserBotStatuses` | Public read; operator create/update | `active`, `working`, `idle`, or `attention` state for a persona. |
+| `browserEarnings` | Public read; operator create | Verified USD amount, persona ID, and a short public accounting note. |
+| `browserBrain` | Operator only | Detailed task response, source links, and local-memory projection. |
 | `dashboardControls` | Public read; operator create/update | Reversible `paused` or `active` control records. |
 
 ## Configure Firebase web access

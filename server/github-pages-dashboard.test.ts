@@ -27,12 +27,14 @@ describe("GitHub Pages dashboard authentication", () => {
   it("stores sanitized task projections separately from operator-only brain records", async () => {
     const source = await readFile(new URL("../github-pages-dashboard/app.js", import.meta.url), "utf8");
     const rules = await readFile(new URL("../firebase/github-pages.firestore.rules", import.meta.url), "utf8");
-    expect(source).toContain("const publicTask");
-    expect(source).toContain('"browserWorkspace", "brain"');
-    expect(rules).toContain("match /browserWorkspace/tasks/{id}");
-    expect(rules).toContain("match /browserWorkspace/brain/{id}");
+    expect(source).toContain('"browserTasks", task.id');
+    expect(source).toContain('"browserBrain", brainEntry.id');
+    expect(source).toContain('fb.collection(db, "browserTasks")');
+    expect(source).toContain('fb.collection(db, "browserBotStatuses")');
+    expect(rules).toContain("match /browserTasks/{id}");
+    expect(rules).toContain("match /browserBrain/{id}");
     expect(rules).toContain("allow read, create: if operator()");
-    expect(rules).toContain("match /browserWorkspace/earnings/{id}");
+    expect(rules).toContain("match /browserEarnings/{id}");
     expect(source).toContain("recordEarning");
   });
 });

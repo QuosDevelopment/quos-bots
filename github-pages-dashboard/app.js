@@ -82,7 +82,7 @@ async function requireOperator() { if (!configured) throw new Error("Firebase we
 
 async function writeBrowserStatus(personaId, status) {
   try {
-    await fb.setDoc(fb.doc(window.quosDb, "browserWorkspace", "botStatuses", personaId), { personaId, status, operatorUid: state.user.uid, updatedAt: fb.serverTimestamp() }, { merge: true });
+    await fb.setDoc(fb.doc(window.quosDb, "browserBotStatuses", personaId), { personaId, status, operatorUid: state.user.uid, updatedAt: fb.serverTimestamp() }, { merge: true });
     return null;
   } catch (error) { console.warn("Browser status was retained locally because Firebase rejected the write:", error.message); return error.message; }
 }
@@ -91,8 +91,8 @@ async function persistBrowserResult(task, brainEntry) {
   try {
     const publicTask = { id: task.id, personaId: task.personaId, type: task.type, summary: task.summary, outcome: task.outcome, sourceCount: task.sourceCount };
     await Promise.all([
-      fb.setDoc(fb.doc(window.quosDb, "browserWorkspace", "tasks", task.id), { ...publicTask, operatorUid: state.user.uid, createdAt: fb.serverTimestamp() }),
-      fb.setDoc(fb.doc(window.quosDb, "browserWorkspace", "brain", brainEntry.id), { ...brainEntry, operatorUid: state.user.uid, createdAt: fb.serverTimestamp() }),
+      fb.setDoc(fb.doc(window.quosDb, "browserTasks", task.id), { ...publicTask, operatorUid: state.user.uid, createdAt: fb.serverTimestamp() }),
+      fb.setDoc(fb.doc(window.quosDb, "browserBrain", brainEntry.id), { ...brainEntry, operatorUid: state.user.uid, createdAt: fb.serverTimestamp() }),
     ]);
     return null;
   } catch (error) { console.warn("Browser result was retained locally because Firebase rejected the write:", error.message); return error.message; }
@@ -119,7 +119,7 @@ async function recordEarning() {
   if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000) throw new Error("Enter a verified positive USD amount.");
   if (!note || note.length > 240) throw new Error("Enter a public accounting note of 1–240 characters.");
   const entry = { id: crypto.randomUUID(), personaId, amount, currency: "USD", note, createdAt: now() };
-  await fb.setDoc(fb.doc(window.quosDb, "browserWorkspace", "earnings", entry.id), { ...entry, operatorUid: state.user.uid, createdAt: fb.serverTimestamp() });
+  await fb.setDoc(fb.doc(window.quosDb, "browserEarnings", entry.id), { ...entry, operatorUid: state.user.uid, createdAt: fb.serverTimestamp() });
   state.browserEarnings.unshift(entry); renderActivity();
   byId("earningMessage").textContent = "Verified earning saved to the browser workspace ledger.";
   setTimeout(() => byId("earningDialog").close(), 800);
@@ -214,9 +214,9 @@ if (configured) {
   bindSnapshot(fb.collection(db, "quosBots", "runtimeState", "botProfiles"), rows => { state.profiles = new Map(rows.map(row => [row.id, row])); renderBots(); });
   bindSnapshot(fb.query(fb.collection(db, "quosBots", "runtimeState", "publicTasks"), fb.orderBy("createdAt", "desc"), fb.limit(50)), rows => { state.tasks = rows; renderActivity(); });
   bindSnapshot(fb.query(fb.collection(db, "quosBots", "runtimeState", "publicEarnings"), fb.orderBy("createdAt", "desc"), fb.limit(50)), rows => { state.earnings = rows; renderActivity(); });
-  bindSnapshot(fb.query(fb.collection(db, "browserWorkspace", "earnings"), fb.orderBy("createdAt", "desc"), fb.limit(50)), rows => { state.browserEarnings = rows; renderActivity(); });
-  bindSnapshot(fb.query(fb.collection(db, "browserWorkspace", "tasks"), fb.orderBy("createdAt", "desc"), fb.limit(50)), rows => { state.workspaceTasks = rows; renderActivity(); });
-  bindSnapshot(fb.collection(db, "browserWorkspace", "botStatuses"), rows => { rows.forEach(row => state.browserStatus.set(row.personaId, row.status)); renderBots(); });
+  bindSnapshot(fb.query(fb.collection(db, "browserEarnings"), fb.orderBy("createdAt", "desc"), fb.limit(50)), rows => { state.browserEarnings = rows; renderActivity(); });
+  bindSnapshot(fb.query(fb.collection(db, "browserTasks"), fb.orderBy("createdAt", "desc"), fb.limit(50)), rows => { state.workspaceTasks = rows; renderActivity(); });
+  bindSnapshot(fb.collection(db, "browserBotStatuses"), rows => { rows.forEach(row => state.browserStatus.set(row.personaId, row.status)); renderBots(); });
   bindSnapshot(fb.collection(db, "dashboardControls"), rows => { state.controls = new Map(rows.map(row => [row.personaId, row])); renderBots(); });
   fb.onSnapshot(fb.doc(db, "quosBots", "runtimeState"), snapshot => setGateway(snapshot.data()?.metadata || {}));
   fb.onAuthStateChanged(auth, async user => { state.user = user; state.operator = false; byId("signIn").textContent = user ? "Checking operator…" : "Operator sign in"; if (user) { const admin = await fb.getDoc(fb.doc(db, "dashboardOperators", user.uid)); state.operator = admin.exists() && admin.data()?.enabled === true; byId("signIn").textContent = state.operator ? "Operator sign out" : "Signed in · view only"; } });

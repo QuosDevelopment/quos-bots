@@ -37,7 +37,7 @@ service cloud.firestore {
 
     // Browser-only QUOS workspace: the public dashboard can render sanitized
     // persona/task status, while detailed brain records remain operator-private.
-    match /browserWorkspace/tasks/{id} {
+    match /browserTasks/{id} {
       allow read: if true;
       allow create: if operator()
         && request.resource.data.operatorUid == request.auth.uid
@@ -50,7 +50,7 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    match /browserWorkspace/botStatuses/{personaId} {
+    match /browserBotStatuses/{personaId} {
       allow read: if true;
       allow create, update: if operator()
         && request.resource.data.operatorUid == request.auth.uid
@@ -59,7 +59,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /browserWorkspace/earnings/{id} {
+    match /browserEarnings/{id} {
       allow read: if true;
       allow create: if operator()
         && request.resource.data.operatorUid == request.auth.uid
@@ -74,7 +74,7 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    match /browserWorkspace/brain/{id} {
+    match /browserBrain/{id} {
       allow read, create: if operator() && request.resource.data.operatorUid == request.auth.uid;
       allow update, delete: if false;
     }

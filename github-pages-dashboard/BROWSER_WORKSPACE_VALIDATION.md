@@ -20,7 +20,7 @@ The Firebase Console session is authenticated to the `quos-bots` project as the 
 
 ## Firestore policy publication — 2026-08-25
 
-After explicit approval, the full browser-workspace policy was applied and published. The Rules editor now lists a new **Today • 1:19 AM** active revision without an unpublished-changes control. The active policy contains public reads for sanitized `browserWorkspace/tasks`, `browserWorkspace/botStatuses`, and `browserWorkspace/earnings`; it restricts detailed `browserWorkspace/brain` records to an enabled operator.
+After explicit approval, the full browser-workspace policy was applied and published. The Rules editor now lists a new **Today • 1:19 AM** active revision without an unpublished-changes control. The repaired policy source contains public reads for sanitized `browserTasks`, `browserBotStatuses`, and `browserEarnings`; it restricts detailed `browserBrain` records to an enabled operator. The repaired policy still needs publication after the code deployment.
 
 ## Operator-authentication status — 2026-08-25
 
@@ -33,3 +33,9 @@ The Firebase Console confirms that the **Google** sign-in provider is enabled, b
 ## Email/Password recovery identity — 2026-08-25
 
 The project owner created a Firebase Authentication Email/Password user for the dashboard email address. The Firebase Console now lists one user. Its UID is treated as privileged configuration and is used only to create the corresponding `dashboardOperators` authorization document; it is not recorded in this public repository document.
+
+With the owner’s explicit approval, a `dashboardOperators` document was submitted in Firestore using that privileged UID and a Boolean `enabled: true` field. The console returned to the data root after the save action; a separate refresh/record check is required before treating the authorization as verified.
+
+During the subsequent document check, the authenticated Firebase Console data view returned a blank application canvas despite retaining the signed-in account chrome. The saved operator record will therefore be confirmed through the dashboard authorization path after the Email/Password session succeeds; it is not yet claimed as independently verified.
+
+On the hosted dashboard, the Firebase Auth and Firestore client objects both initialized successfully. The data indicator remained in a transient `FIREBASE CONNECTING` state during the next check. Investigation identified that the first browser-workspace implementation used an invalid two-segment browser-workspace hierarchy. The code and rules now use valid root collections: `browserTasks`, `browserBotStatuses`, `browserEarnings`, and operator-only `browserBrain`. No browser-workspace task or earnings records existed, so no record migration is required; the corrected deployment and rules still require live validation.
