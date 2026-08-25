@@ -78,3 +78,4 @@
 - [x] Convert the public browser workspace to read-only Firebase access, disabling task, pause, earnings, and private-brain writes without an authenticated server-side operator.
 - [ ] Publish and validate the authentication-free GitHub Pages workspace and updated Firestore policy.
 - [ ] Document that the temporary Email/Password recovery flow was removed by user request and that the final browser workspace has no authentication or Firebase writes.
+- [ ] Fix the hosted dashboard’s stale Firebase configuration module cache and revalidate public read-only Firebase initialization.

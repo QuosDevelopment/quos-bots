@@ -1,4 +1,4 @@
-import { firebaseConfig } from "./firebase-config.js?v=browser-workspace-20260824";
+import { firebaseConfig } from "./firebase-config.js?v=auth-free-20260825";
 import { PERSONAS } from "./personas.js";
 
 const configured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("REPLACE_");
