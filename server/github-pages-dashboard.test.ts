@@ -1,19 +1,19 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
-describe("GitHub Pages dashboard authentication", () => {
-  it("uses a redirect-safe Google sign-in flow and restores redirect results", async () => {
+describe("GitHub Pages dashboard public workspace", () => {
+  it("removes all browser authentication and sign-in controls", async () => {
     const source = await readFile(new URL("../github-pages-dashboard/app.js", import.meta.url), "utf8");
     const document = await readFile(new URL("../github-pages-dashboard/index.html", import.meta.url), "utf8");
-    expect(source).toContain("signInWithRedirect");
-    expect(source).toContain("signInWithEmailAndPassword");
-    expect(source).toContain("sendPasswordResetEmail");
-    expect(source).toContain("auth/operation-not-allowed");
-    expect(source).toContain("getRedirectResult(auth)");
+    expect(source).not.toContain("signInWithRedirect");
+    expect(source).not.toContain("signInWithEmailAndPassword");
+    expect(source).not.toContain("sendPasswordResetEmail");
+    expect(source).not.toContain("firebase-auth.js");
     expect(source).not.toContain("signInWithPopup");
     expect(document).toMatch(/src="app\.js\?v=[^"]+"/);
-    expect(document).toContain('id="operatorPassword"');
-    expect(document).toContain('id="passwordReset"');
+    expect(document).not.toContain('id="operatorPassword"');
+    expect(document).not.toContain('id="passwordReset"');
+    expect(document).not.toContain('id="signIn"');
   });
 
   it("keeps browser Gemini assistance session-scoped and exposes local brain export", async () => {
@@ -27,17 +27,16 @@ describe("GitHub Pages dashboard authentication", () => {
     expect(document).toContain('id="geminiKey"');
   });
 
-  it("stores sanitized task projections separately from operator-only brain records", async () => {
+  it("keeps browser task execution local while reading sanitized public projections", async () => {
     const source = await readFile(new URL("../github-pages-dashboard/app.js", import.meta.url), "utf8");
     const rules = await readFile(new URL("../firebase/github-pages.firestore.rules", import.meta.url), "utf8");
-    expect(source).toContain('"browserTasks", task.id');
-    expect(source).toContain('"browserBrain", brainEntry.id');
     expect(source).toContain('fb.collection(db, "browserTasks")');
     expect(source).toContain('fb.collection(db, "browserBotStatuses")');
     expect(rules).toContain("match /browserTasks/{id}");
     expect(rules).toContain("match /browserBrain/{id}");
-    expect(rules).toContain("allow read, create: if operator()");
+    expect(rules).toContain("allow read, write: if false;");
     expect(rules).toContain("match /browserEarnings/{id}");
-    expect(source).toContain("recordEarning");
+    expect(source).not.toContain("recordEarning");
+    expect(source).toContain("Completed locally");
   });
 });

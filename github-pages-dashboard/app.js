@@ -2,17 +2,16 @@ import { firebaseConfig } from "./firebase-config.js?v=browser-workspace-2026082
 import { PERSONAS } from "./personas.js";
 
 const configured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("REPLACE_");
-const state = { profiles: new Map(), tasks: [], workspaceTasks: [], earnings: [], browserEarnings: [], controls: new Map(), user: null, operator: false, selectedPersona: null, browserStatus: new Map(), localTasks: [], brain: [], geminiKey: "" };
+const state = { profiles: new Map(), tasks: [], workspaceTasks: [], earnings: [], browserEarnings: [], controls: new Map(), localControls: new Map(), selectedPersona: null, browserStatus: new Map(), localTasks: [], brain: [], geminiKey: "" };
 let fb = {};
 const byId = id => document.getElementById(id);
 const formatDate = value => value ? new Date(value?.toDate?.() || value).toLocaleString() : "—";
 const formatMoney = value => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value) || 0);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[char]));
 const now = () => new Date().toISOString();
-const grid = byId("botGrid"); const cardTemplate = byId("botCard"); const dialog = byId("taskDialog"); const authDialog = byId("authDialog"); const search = byId("search"); const groupFilter = byId("groupFilter");
+const grid = byId("botGrid"); const cardTemplate = byId("botCard"); const dialog = byId("taskDialog"); const search = byId("search"); const groupFilter = byId("groupFilter");
 
 for (const group of [...new Set(PERSONAS.map(persona => persona.group))].sort()) groupFilter.insertAdjacentHTML("beforeend", `<option value="${escape(group)}">${escape(group)}</option>`);
-for (const persona of PERSONAS) byId("earningPersona").insertAdjacentHTML("beforeend", `<option value="${escape(persona.id)}">${escape(persona.id)} — ${escape(persona.role)}</option>`);
 
 function loadBrain() {
   try { state.brain = JSON.parse(localStorage.getItem("quos-browser-brain") || "[]"); } catch { state.brain = []; }
@@ -34,7 +33,7 @@ function exportBrain() {
 }
 
 function effectiveStatus(persona) {
-  const control = state.controls.get(persona.id);
+  const control = state.localControls.get(persona.id) || state.controls.get(persona.id);
   if (control?.status === "paused") return "paused";
   return state.browserStatus.get(persona.id) || state.profiles.get(persona.id)?.operationalStatus || "idle";
 }
@@ -75,54 +74,13 @@ function setGateway(metadata = {}) { byId("metricGateway").textContent = metadat
 
 function openAssign(persona) {
   state.selectedPersona = persona; byId("dialogTitle").textContent = `RUN ${persona.id}`; byId("dialogPersona").textContent = `${persona.role} · ${persona.group}`; byId("taskBrief").value = ""; byId("geminiKey").value = "";
-  byId("dialogMessage").textContent = state.operator ? "This task runs in this browser tab only. The Gemini key is kept in memory for this task and is never saved to Firebase, GitHub Pages, or local storage." : "Operator sign-in is required to run and record tasks."; dialog.showModal();
-}
-
-async function requireOperator() { if (!configured) throw new Error("Firebase web configuration is not set."); if (!state.operator) throw new Error("Operator sign-in and Firebase operator authorization are required."); }
-
-async function writeBrowserStatus(personaId, status) {
-  try {
-    await fb.setDoc(fb.doc(window.quosDb, "browserBotStatuses", personaId), { personaId, status, operatorUid: state.user.uid, updatedAt: fb.serverTimestamp() }, { merge: true });
-    return null;
-  } catch (error) { console.warn("Browser status was retained locally because Firebase rejected the write:", error.message); return error.message; }
-}
-
-async function persistBrowserResult(task, brainEntry) {
-  try {
-    const publicTask = { id: task.id, personaId: task.personaId, type: task.type, summary: task.summary, outcome: task.outcome, sourceCount: task.sourceCount };
-    await Promise.all([
-      fb.setDoc(fb.doc(window.quosDb, "browserTasks", task.id), { ...publicTask, operatorUid: state.user.uid, createdAt: fb.serverTimestamp() }),
-      fb.setDoc(fb.doc(window.quosDb, "browserBrain", brainEntry.id), { ...brainEntry, operatorUid: state.user.uid, createdAt: fb.serverTimestamp() }),
-    ]);
-    return null;
-  } catch (error) { console.warn("Browser result was retained locally because Firebase rejected the write:", error.message); return error.message; }
+  byId("dialogMessage").textContent = "This task runs in this browser tab only. The Gemini key is kept in memory for this task and is never saved to Firebase, GitHub Pages, or local storage. Results stay in local browser memory and can be exported as brain.jsonl."; dialog.showModal();
 }
 
 async function togglePause(persona) {
-  try {
-    await requireOperator(); const current = state.controls.get(persona.id); const status = current?.status === "paused" ? "active" : "paused"; const action = status === "paused" ? "pause" : "reactivate";
-    if (!window.confirm(`${action === "pause" ? "Kill bot" : "Reactivate bot"} ${persona.id}? “Kill bot” is a reversible browser-workspace pause; it does not delete persona data.`)) return;
-    await fb.setDoc(fb.doc(window.quosDb, "dashboardControls", persona.id), { personaId: persona.id, status, operatorUid: state.user.uid, updatedAt: fb.serverTimestamp() }, { merge: true });
-  } catch (error) { window.alert(error.message); }
-}
-
-function openEarning() {
-  byId("earningAmount").value = ""; byId("earningNote").value = "";
-  byId("earningMessage").textContent = state.operator ? "Record only verified amounts. The note is public ledger text; do not include sensitive information." : "Operator sign-in is required to record earnings.";
-  byId("earningDialog").showModal();
-}
-
-async function recordEarning() {
-  await requireOperator();
-  const personaId = byId("earningPersona").value; const amount = Number(byId("earningAmount").value); const note = byId("earningNote").value.trim();
-  if (!PERSONAS.some(persona => persona.id === personaId)) throw new Error("Choose a valid persona.");
-  if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000) throw new Error("Enter a verified positive USD amount.");
-  if (!note || note.length > 240) throw new Error("Enter a public accounting note of 1–240 characters.");
-  const entry = { id: crypto.randomUUID(), personaId, amount, currency: "USD", note, createdAt: now() };
-  await fb.setDoc(fb.doc(window.quosDb, "browserEarnings", entry.id), { ...entry, operatorUid: state.user.uid, createdAt: fb.serverTimestamp() });
-  state.browserEarnings.unshift(entry); renderActivity();
-  byId("earningMessage").textContent = "Verified earning saved to the browser workspace ledger.";
-  setTimeout(() => byId("earningDialog").close(), 800);
+  const current = state.localControls.get(persona.id) || state.controls.get(persona.id); const status = current?.status === "paused" ? "active" : "paused"; const action = status === "paused" ? "pause" : "reactivate";
+  if (!window.confirm(`${action === "pause" ? "Kill bot" : "Reactivate bot"} ${persona.id}? This is a reversible pause for the current browser tab only and does not delete persona data.`)) return;
+  state.localControls.set(persona.id, { personaId: persona.id, status }); renderBots();
 }
 
 async function browserSources(task) {
@@ -152,12 +110,11 @@ async function browserGemini(persona, brief, sources, key) {
 }
 
 async function runBrowserTask() {
-  await requireOperator();
   const persona = state.selectedPersona; const brief = byId("taskBrief").value.trim(); const key = byId("geminiKey").value.trim();
   if (!persona || !brief) throw new Error("Select a persona and enter a task brief.");
   if (!key) throw new Error("Enter a Gemini key for this browser session. It is not saved.");
   if (effectiveStatus(persona) === "paused") throw new Error(`${persona.id} is paused. Reactivate it before running a task.`);
-  state.geminiKey = key; state.browserStatus.set(persona.id, "working"); renderBots(); await writeBrowserStatus(persona.id, "working");
+  state.geminiKey = key; state.browserStatus.set(persona.id, "working"); renderBots();
   byId("dialogMessage").textContent = "Collecting browser-accessible public source links…";
   try {
     const sources = await browserSources(brief);
@@ -165,69 +122,17 @@ async function runBrowserTask() {
     const response = await browserGemini(persona, brief, sources, state.geminiKey);
     const completedAt = now();
     const task = { id: crypto.randomUUID(), personaId: persona.id, type: "browser_task", summary: brief, outcome: "completed", response, sourceCount: sources.length, createdAt: completedAt };
-    const brainEntry = appendBrain({ type: "browser_task", personaId: persona.id, role: persona.role, task: brief, response, sources, scope: "private" });
-    const syncError = await persistBrowserResult(task, brainEntry);
-    state.localTasks.unshift(task); state.browserStatus.set(persona.id, "active"); await writeBrowserStatus(persona.id, "active"); renderBots(); renderActivity();
-    byId("dialogMessage").textContent = syncError ? `Completed locally. Firebase needs the browser-workspace rules published before it can retain this result. ${syncError}` : `Completed and saved to Firebase with ${sources.length} source link(s). Download brain.jsonl to retain a portable audit trail.`;
+    appendBrain({ type: "browser_task", personaId: persona.id, role: persona.role, task: brief, response, sources, scope: "local" });
+    state.localTasks.unshift(task); state.browserStatus.set(persona.id, "active"); renderBots(); renderActivity();
+    byId("dialogMessage").textContent = `Completed locally with ${sources.length} source link(s). Download brain.jsonl to retain a portable audit trail.`;
   } catch (error) {
-    state.browserStatus.set(persona.id, "attention"); appendBrain({ type: "browser_task_failure", personaId: persona.id, task: brief, summary: error.message, scope: "private" }); await writeBrowserStatus(persona.id, "attention"); renderBots();
+    state.browserStatus.set(persona.id, "attention"); appendBrain({ type: "browser_task_failure", personaId: persona.id, task: brief, summary: error.message, scope: "local" }); renderBots();
     throw error;
   } finally { state.geminiKey = ""; byId("geminiKey").value = ""; }
 }
 
-async function beginGoogleSignIn() {
-  try { byId("signIn").textContent = "Opening Google…"; await fb.signInWithRedirect(window.quosAuth, new fb.GoogleAuthProvider()); }
-  catch (error) { console.warn("Firebase operator sign-in could not start:", error.message); byId("signIn").textContent = "Operator sign in"; byId("authMessage").textContent = "Google sign-in could not start. Confirm the authorized domain in Firebase Authentication."; }
-}
-
-async function beginEmailSignIn() {
-  const email = byId("operatorEmail").value.trim(); const password = byId("operatorPassword").value;
-  if (!email || !password) throw new Error("Enter the Email/Password operator credentials.");
-  try {
-    byId("authMessage").textContent = "Signing in…";
-    await fb.signInWithEmailAndPassword(window.quosAuth, email, password);
-    byId("operatorPassword").value = ""; authDialog.close();
-  } catch (error) {
-    byId("operatorPassword").value = "";
-    console.warn("Firebase Email/Password sign-in failed:", error.code || error.message);
-    const messages = {
-      "auth/invalid-credential": "Firebase did not accept that email/password combination. Use the password created in Firebase Authentication or request a reset email below.",
-      "auth/invalid-email": "Enter a valid operator email address.",
-      "auth/operation-not-allowed": "Email/Password sign-in is disabled in Firebase Authentication. Enable the Email/Password provider in the Firebase Console.",
-      "auth/too-many-requests": "Too many attempts were made. Wait before trying again or use the reset-email action.",
-      "auth/user-disabled": "This Firebase user is disabled. Re-enable it in Firebase Authentication before signing in.",
-    };
-    throw new Error(messages[error.code] || "Email/Password sign-in could not be completed. Request a reset email or review Firebase Authentication provider settings.");
-  }
-}
-
-async function requestPasswordReset() {
-  const email = byId("operatorEmail").value.trim();
-  if (!email) throw new Error("Enter the Firebase operator email before requesting a password reset.");
-  try {
-    byId("authMessage").textContent = "Requesting a Firebase password-reset email…";
-    await fb.sendPasswordResetEmail(window.quosAuth, email);
-    byId("operatorPassword").value = "";
-    byId("authMessage").textContent = "If this Email/Password account is available, Firebase has sent password-reset instructions. Complete the reset from your inbox, then return here to sign in.";
-  } catch (error) {
-    console.warn("Firebase password-reset request failed:", error.code || error.message);
-    const messages = {
-      "auth/invalid-email": "Enter a valid operator email address before requesting a reset.",
-      "auth/operation-not-allowed": "Email/Password sign-in is disabled in Firebase Authentication. Enable it in the Firebase Console first.",
-      "auth/too-many-requests": "Too many requests were made. Wait before requesting another reset email.",
-    };
-    throw new Error(messages[error.code] || "Firebase could not send the password-reset request. Review the Email/Password provider and try again.");
-  }
-}
-
 byId("submitTask").addEventListener("click", async event => { event.preventDefault(); try { await runBrowserTask(); setTimeout(() => dialog.close(), 900); } catch (error) { byId("dialogMessage").textContent = error.message; } });
 byId("brainExport").addEventListener("click", exportBrain);
-byId("recordEarning").addEventListener("click", openEarning);
-byId("submitEarning").addEventListener("click", async event => { event.preventDefault(); try { await recordEarning(); } catch (error) { byId("earningMessage").textContent = error.message; } });
-byId("signIn").addEventListener("click", async () => { if (!configured) return window.alert("Set Firebase Web configuration in firebase-config.js first."); if (state.user) return fb.signOut(window.quosAuth); byId("operatorEmail").value = ""; byId("operatorPassword").value = ""; byId("authMessage").textContent = "Choose Google or the Email/Password user created in Firebase Authentication. Credentials are never saved."; authDialog.showModal(); });
-byId("googleSignIn").addEventListener("click", async event => { event.preventDefault(); await beginGoogleSignIn(); });
-byId("emailSignIn").addEventListener("click", async event => { event.preventDefault(); try { await beginEmailSignIn(); } catch (error) { byId("authMessage").textContent = error.message; } });
-byId("passwordReset").addEventListener("click", async event => { event.preventDefault(); try { await requestPasswordReset(); } catch (error) { byId("authMessage").textContent = error.message; } });
 search.addEventListener("input", renderBots); groupFilter.addEventListener("change", renderBots);
 
 function bindSnapshot(source, callback) { fb.onSnapshot(source, snapshot => { byId("connection").textContent = "FIREBASE LIVE"; callback(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))); }, error => { byId("connection").textContent = "FIREBASE READ BLOCKED"; console.warn("Firestore read blocked:", error.message); }); }
@@ -235,9 +140,8 @@ function bindSnapshot(source, callback) { fb.onSnapshot(source, snapshot => { by
 loadBrain(); byId("brainCount").textContent = `${state.brain.length} local records`;
 if (configured) {
   byId("connection").textContent = "FIREBASE CONNECTING";
-  const [appSdk, authSdk, firestoreSdk] = await Promise.all([import("https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js"), import("https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js"), import("https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js")]);
-  fb = { ...appSdk, ...authSdk, ...firestoreSdk }; const app = fb.initializeApp(firebaseConfig); const db = fb.getFirestore(app); const auth = fb.getAuth(app); window.quosDb = db; window.quosAuth = auth;
-  fb.getRedirectResult(auth).catch(error => console.warn("Firebase operator redirect failed:", error.message));
+  const [appSdk, firestoreSdk] = await Promise.all([import("https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js"), import("https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js")]);
+  fb = { ...appSdk, ...firestoreSdk }; const app = fb.initializeApp(firebaseConfig); const db = fb.getFirestore(app); window.quosDb = db;
   bindSnapshot(fb.collection(db, "quosBots", "runtimeState", "botProfiles"), rows => { state.profiles = new Map(rows.map(row => [row.id, row])); renderBots(); });
   bindSnapshot(fb.query(fb.collection(db, "quosBots", "runtimeState", "publicTasks"), fb.orderBy("createdAt", "desc"), fb.limit(50)), rows => { state.tasks = rows; renderActivity(); });
   bindSnapshot(fb.query(fb.collection(db, "quosBots", "runtimeState", "publicEarnings"), fb.orderBy("createdAt", "desc"), fb.limit(50)), rows => { state.earnings = rows; renderActivity(); });
@@ -246,5 +150,4 @@ if (configured) {
   bindSnapshot(fb.collection(db, "browserBotStatuses"), rows => { rows.forEach(row => state.browserStatus.set(row.personaId, row.status)); renderBots(); });
   bindSnapshot(fb.collection(db, "dashboardControls"), rows => { state.controls = new Map(rows.map(row => [row.personaId, row])); renderBots(); });
   fb.onSnapshot(fb.doc(db, "quosBots", "runtimeState"), snapshot => setGateway(snapshot.data()?.metadata || {}));
-  fb.onAuthStateChanged(auth, async user => { state.user = user; state.operator = false; byId("signIn").textContent = user ? "Checking operator…" : "Operator sign in"; if (user) { const admin = await fb.getDoc(fb.doc(db, "dashboardOperators", user.uid)); state.operator = admin.exists() && admin.data()?.enabled === true; byId("signIn").textContent = state.operator ? "Operator sign out" : "Signed in · view only"; } });
 } else { byId("connection").textContent = "FIREBASE CONFIG REQUIRED"; byId("metricGateway").textContent = "browser only"; renderBots(); renderActivity(); }

@@ -69,8 +69,12 @@
 - [x] Add browser-side source collection, append-only local brain.jsonl export, and Firebase-safe task/status/earnings projections.
 - [x] Add an operator-gated browser-workspace verified-earnings projection with public sanitized reads, private input controls, Firestore rules, and regression coverage.
 - [x] Publish and validate the GitHub Pages-only workspace, documenting that browser agents run only while a user’s page is open. GitHub Actions deployment `32749439557` succeeded and the hosted 101-persona workspace was verified.
-- [ ] Complete a successful Firebase Google sign-in on the hosted dashboard, create `dashboardOperators/<UID> { enabled: true }`, and validate one live browser task plus one verified earnings record without storing a Gemini key.
-- [ ] Add a Firebase Email/Password sign-in form for the manually created dashboard user, without retaining its password, then authorize its UID as the sole operator.
-- [ ] Correct the invalid browserWorkspace Firestore collection/document path hierarchy, update its security rules and regression coverage, and validate the repaired live listeners before recording operator task or earnings data.
-- [ ] Diagnose and repair the Firebase Email/Password operator sign-in failure, including provider state, recovery-user credentials, and user-safe on-page error guidance.
-- [ ] Add a password-reset request action for the Firebase Email/Password recovery user, without exposing or retaining a password.
+- [x] **Superseded — not completed:** Complete a successful Firebase Google sign-in on the hosted dashboard, create `dashboardOperators/<UID> { enabled: true }`, and validate one live browser task plus one verified earnings record without storing a Gemini key. The user requested all authentication be removed before this could be validated.
+- [x] **Superseded — not completed:** Add a Firebase Email/Password sign-in form for the manually created dashboard user, without retaining its password, then authorize its UID as the sole operator. The temporary form was implemented but its live session was never validated before removal.
+- [x] Correct the invalid browserWorkspace Firestore collection/document path hierarchy, update its security rules and regression coverage, and validate the repaired live listeners before recording operator task or earnings data. The corrected root collection reads remain; public writes are now intentionally disabled.
+- [x] **Superseded — not completed:** Diagnose and repair the Firebase Email/Password operator sign-in failure, including provider state, recovery-user credentials, and user-safe on-page error guidance. Diagnostics and a reset control were implemented, but the recovery flow was removed before live validation.
+- [x] **Superseded:** Add a password-reset request action for the Firebase Email/Password recovery user, without exposing or retaining a password. The temporary recovery control was implemented but removed before the user used it.
+- [x] Remove all Firebase Authentication, Google, email/password, sign-in, and sign-out interfaces from the GitHub Pages QUOS workspace.
+- [x] Convert the public browser workspace to read-only Firebase access, disabling task, pause, earnings, and private-brain writes without an authenticated server-side operator.
+- [ ] Publish and validate the authentication-free GitHub Pages workspace and updated Firestore policy.
+- [ ] Document that the temporary Email/Password recovery flow was removed by user request and that the final browser workspace has no authentication or Firebase writes.

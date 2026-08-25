@@ -1,10 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function operator() {
-      return request.auth != null && exists(/databases/$(database)/documents/dashboardOperators/$(request.auth.uid)) && get(/databases/$(database)/documents/dashboardOperators/$(request.auth.uid)).data.enabled == true;
-    }
-
     // These records appear on a public GitHub Pages dashboard. Do not place
     // sensitive prompts, source content, personal information, or credentials here.
     match /quosBots/runtimeState {
@@ -20,63 +16,29 @@ service cloud.firestore {
       match /runs/{id} { allow read: if false; allow write: if false; }
     }
 
-    match /dashboardTasks/{id} {
-      allow read: if operator();
-      allow create: if operator() && request.resource.data.operatorUid == request.auth.uid && request.resource.data.status == 'queued' && request.resource.data.personaId.matches('QB-[0-9]{3}') && request.resource.data.brief is string && request.resource.data.brief.size() > 0 && request.resource.data.brief.size() <= 1000;
-      allow update: if operator() && resource.data.status == 'queued' && request.resource.data.status == 'assigned' && request.resource.data.operatorUid == resource.data.operatorUid;
-      allow delete: if false;
-    }
-
-    match /dashboardControls/{personaId} {
-      allow read: if true;
-      allow create, update: if operator() && request.resource.data.operatorUid == request.auth.uid && request.resource.data.personaId == personaId && (request.resource.data.status == 'paused' || request.resource.data.status == 'active');
-      allow delete: if false;
-    }
-
-    match /dashboardOperators/{id} { allow read: if request.auth != null && request.auth.uid == id; allow write: if false; }
+    match /dashboardTasks/{id} { allow read, write: if false; }
+    match /dashboardControls/{personaId} { allow read: if true; allow write: if false; }
+    match /dashboardOperators/{id} { allow read, write: if false; }
 
     // Browser-only QUOS workspace: the public dashboard can render sanitized
     // persona/task status, while detailed brain records remain operator-private.
     match /browserTasks/{id} {
       allow read: if true;
-      allow create: if operator()
-        && request.resource.data.operatorUid == request.auth.uid
-        && request.resource.data.personaId.matches('QB-[0-9]{3}')
-        && request.resource.data.type == 'browser_task'
-        && request.resource.data.summary is string
-        && request.resource.data.summary.size() > 0
-        && request.resource.data.summary.size() <= 1000
-        && request.resource.data.outcome == 'completed';
-      allow update, delete: if false;
+      allow write: if false;
     }
 
     match /browserBotStatuses/{personaId} {
       allow read: if true;
-      allow create, update: if operator()
-        && request.resource.data.operatorUid == request.auth.uid
-        && request.resource.data.personaId == personaId
-        && request.resource.data.status in ['active', 'working', 'idle', 'attention'];
-      allow delete: if false;
+      allow write: if false;
     }
 
     match /browserEarnings/{id} {
       allow read: if true;
-      allow create: if operator()
-        && request.resource.data.operatorUid == request.auth.uid
-        && request.resource.data.personaId.matches('QB-[0-9]{3}')
-        && request.resource.data.currency == 'USD'
-        && request.resource.data.amount is number
-        && request.resource.data.amount > 0
-        && request.resource.data.amount <= 1000000
-        && request.resource.data.note is string
-        && request.resource.data.note.size() > 0
-        && request.resource.data.note.size() <= 240;
-      allow update, delete: if false;
+      allow write: if false;
     }
 
     match /browserBrain/{id} {
-      allow read, create: if operator() && request.resource.data.operatorUid == request.auth.uid;
-      allow update, delete: if false;
+      allow read, write: if false;
     }
   }
 }
