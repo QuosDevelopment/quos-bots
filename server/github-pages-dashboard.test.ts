@@ -6,9 +6,11 @@ describe("GitHub Pages dashboard authentication", () => {
     const source = await readFile(new URL("../github-pages-dashboard/app.js", import.meta.url), "utf8");
     const document = await readFile(new URL("../github-pages-dashboard/index.html", import.meta.url), "utf8");
     expect(source).toContain("signInWithRedirect");
+    expect(source).toContain("signInWithEmailAndPassword");
     expect(source).toContain("getRedirectResult(auth)");
     expect(source).not.toContain("signInWithPopup");
     expect(document).toMatch(/src="app\.js\?v=[^"]+"/);
+    expect(document).toContain('id="operatorPassword"');
   });
 
   it("keeps browser Gemini assistance session-scoped and exposes local brain export", async () => {

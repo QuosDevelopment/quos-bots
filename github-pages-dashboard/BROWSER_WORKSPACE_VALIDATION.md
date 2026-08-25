@@ -29,3 +29,7 @@ The dashboard was returned from two Google redirect attempts, but the hosted pag
 The deployed `firebase-config.js` was independently verified to contain the expected public `quos-bots` Web configuration, and the deployed dashboard script contains the Firebase Auth initialization path. The remaining issue is completion/persistence of the browser Google OAuth session, not an absent public Firebase configuration asset.
 
 The Firebase Console confirms that the **Google** sign-in provider is enabled, but the Firebase Authentication user list still contains no users. A later redirect correctly reached Google’s account picker for `quos-bots.firebaseapp.com`, yet returning to the dashboard still left the button as **Operator sign in**. The browser OAuth completion must produce a Firebase user before the operator UID can be created and before live task or earning records can be validated.
+
+## Email/Password recovery identity — 2026-08-25
+
+The project owner created a Firebase Authentication Email/Password user for the dashboard email address. The Firebase Console now lists one user. Its UID is treated as privileged configuration and is used only to create the corresponding `dashboardOperators` authorization document; it is not recorded in this public repository document.

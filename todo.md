@@ -70,3 +70,4 @@
 - [x] Add an operator-gated browser-workspace verified-earnings projection with public sanitized reads, private input controls, Firestore rules, and regression coverage.
 - [x] Publish and validate the GitHub Pages-only workspace, documenting that browser agents run only while a user’s page is open. GitHub Actions deployment `32749439557` succeeded and the hosted 101-persona workspace was verified.
 - [ ] Complete a successful Firebase Google sign-in on the hosted dashboard, create `dashboardOperators/<UID> { enabled: true }`, and validate one live browser task plus one verified earnings record without storing a Gemini key.
+- [ ] Add a Firebase Email/Password sign-in form for the manually created dashboard user, without retaining its password, then authorize its UID as the sole operator.

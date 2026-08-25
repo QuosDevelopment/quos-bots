@@ -38,6 +38,8 @@ After signing in to the dashboard with Google, locate the account UID in Firebas
 
 An enabled operator can run browser tasks and use **Kill bot** as a reversible pause. The pause prevents a browser task from starting for that persona; it does not delete a persona, its task history, or its local brain records.
 
+The dashboard offers **Google** sign-in and an Email/Password recovery form for a Firebase Authentication user created by the project owner. The recovery form sends the credentials only to Firebase Authentication, clears the password field immediately after each attempt, and never stores it in browser storage, Firebase documents, or GitHub Pages assets.
+
 Use **Record earning** only for an actual, verified USD ledger event. The amount and short accounting note are intentionally public dashboard data, so do not enter customer, bank, invoice, personal, or other sensitive details. The browser validates a positive amount, and the Firestore rules limit creation to enabled operators.
 
 ## Publish with GitHub Pages

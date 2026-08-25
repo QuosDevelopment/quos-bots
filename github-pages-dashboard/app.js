@@ -9,7 +9,7 @@ const formatDate = value => value ? new Date(value?.toDate?.() || value).toLocal
 const formatMoney = value => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value) || 0);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[char]));
 const now = () => new Date().toISOString();
-const grid = byId("botGrid"); const cardTemplate = byId("botCard"); const dialog = byId("taskDialog"); const search = byId("search"); const groupFilter = byId("groupFilter");
+const grid = byId("botGrid"); const cardTemplate = byId("botCard"); const dialog = byId("taskDialog"); const authDialog = byId("authDialog"); const search = byId("search"); const groupFilter = byId("groupFilter");
 
 for (const group of [...new Set(PERSONAS.map(persona => persona.group))].sort()) groupFilter.insertAdjacentHTML("beforeend", `<option value="${escape(group)}">${escape(group)}</option>`);
 for (const persona of PERSONAS) byId("earningPersona").insertAdjacentHTML("beforeend", `<option value="${escape(persona.id)}">${escape(persona.id)} — ${escape(persona.role)}</option>`);
@@ -175,12 +175,33 @@ async function runBrowserTask() {
   } finally { state.geminiKey = ""; byId("geminiKey").value = ""; }
 }
 
+async function beginGoogleSignIn() {
+  try { byId("signIn").textContent = "Opening Google…"; await fb.signInWithRedirect(window.quosAuth, new fb.GoogleAuthProvider()); }
+  catch (error) { console.warn("Firebase operator sign-in could not start:", error.message); byId("signIn").textContent = "Operator sign in"; byId("authMessage").textContent = "Google sign-in could not start. Confirm the authorized domain in Firebase Authentication."; }
+}
+
+async function beginEmailSignIn() {
+  const email = byId("operatorEmail").value.trim(); const password = byId("operatorPassword").value;
+  if (!email || !password) throw new Error("Enter the Email/Password operator credentials.");
+  try {
+    byId("authMessage").textContent = "Signing in…";
+    await fb.signInWithEmailAndPassword(window.quosAuth, email, password);
+    byId("operatorPassword").value = ""; authDialog.close();
+  } catch (error) {
+    byId("operatorPassword").value = "";
+    console.warn("Firebase Email/Password sign-in failed:", error.code || error.message);
+    throw new Error("Email/Password sign-in failed. Check the credentials created in Firebase Authentication.");
+  }
+}
+
 byId("submitTask").addEventListener("click", async event => { event.preventDefault(); try { await runBrowserTask(); setTimeout(() => dialog.close(), 900); } catch (error) { byId("dialogMessage").textContent = error.message; } });
 byId("brainExport").addEventListener("click", exportBrain);
 byId("recordEarning").addEventListener("click", openEarning);
 byId("submitEarning").addEventListener("click", async event => { event.preventDefault(); try { await recordEarning(); } catch (error) { byId("earningMessage").textContent = error.message; } });
+byId("signIn").addEventListener("click", async () => { if (!configured) return window.alert("Set Firebase Web configuration in firebase-config.js first."); if (state.user) return fb.signOut(window.quosAuth); byId("operatorEmail").value = ""; byId("operatorPassword").value = ""; byId("authMessage").textContent = "Choose Google or the Email/Password user created in Firebase Authentication. Credentials are never saved."; authDialog.showModal(); });
+byId("googleSignIn").addEventListener("click", async event => { event.preventDefault(); await beginGoogleSignIn(); });
+byId("emailSignIn").addEventListener("click", async event => { event.preventDefault(); try { await beginEmailSignIn(); } catch (error) { byId("authMessage").textContent = error.message; } });
 search.addEventListener("input", renderBots); groupFilter.addEventListener("change", renderBots);
-byId("signIn").addEventListener("click", async () => { if (!configured) return window.alert("Set Firebase Web configuration in firebase-config.js first."); if (state.user) return fb.signOut(window.quosAuth); try { byId("signIn").textContent = "Opening Google…"; await fb.signInWithRedirect(window.quosAuth, new fb.GoogleAuthProvider()); } catch (error) { console.warn("Firebase operator sign-in could not start:", error.message); byId("signIn").textContent = "Operator sign in"; window.alert("Google sign-in could not start. Confirm that this dashboard domain is authorized in Firebase Authentication."); } });
 
 function bindSnapshot(source, callback) { fb.onSnapshot(source, snapshot => { byId("connection").textContent = "FIREBASE LIVE"; callback(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))); }, error => { byId("connection").textContent = "FIREBASE READ BLOCKED"; console.warn("Firestore read blocked:", error.message); }); }
 
