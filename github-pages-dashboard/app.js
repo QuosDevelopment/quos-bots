@@ -190,7 +190,33 @@ async function beginEmailSignIn() {
   } catch (error) {
     byId("operatorPassword").value = "";
     console.warn("Firebase Email/Password sign-in failed:", error.code || error.message);
-    throw new Error("Email/Password sign-in failed. Check the credentials created in Firebase Authentication.");
+    const messages = {
+      "auth/invalid-credential": "Firebase did not accept that email/password combination. Use the password created in Firebase Authentication or request a reset email below.",
+      "auth/invalid-email": "Enter a valid operator email address.",
+      "auth/operation-not-allowed": "Email/Password sign-in is disabled in Firebase Authentication. Enable the Email/Password provider in the Firebase Console.",
+      "auth/too-many-requests": "Too many attempts were made. Wait before trying again or use the reset-email action.",
+      "auth/user-disabled": "This Firebase user is disabled. Re-enable it in Firebase Authentication before signing in.",
+    };
+    throw new Error(messages[error.code] || "Email/Password sign-in could not be completed. Request a reset email or review Firebase Authentication provider settings.");
+  }
+}
+
+async function requestPasswordReset() {
+  const email = byId("operatorEmail").value.trim();
+  if (!email) throw new Error("Enter the Firebase operator email before requesting a password reset.");
+  try {
+    byId("authMessage").textContent = "Requesting a Firebase password-reset email…";
+    await fb.sendPasswordResetEmail(window.quosAuth, email);
+    byId("operatorPassword").value = "";
+    byId("authMessage").textContent = "If this Email/Password account is available, Firebase has sent password-reset instructions. Complete the reset from your inbox, then return here to sign in.";
+  } catch (error) {
+    console.warn("Firebase password-reset request failed:", error.code || error.message);
+    const messages = {
+      "auth/invalid-email": "Enter a valid operator email address before requesting a reset.",
+      "auth/operation-not-allowed": "Email/Password sign-in is disabled in Firebase Authentication. Enable it in the Firebase Console first.",
+      "auth/too-many-requests": "Too many requests were made. Wait before requesting another reset email.",
+    };
+    throw new Error(messages[error.code] || "Firebase could not send the password-reset request. Review the Email/Password provider and try again.");
   }
 }
 
@@ -201,6 +227,7 @@ byId("submitEarning").addEventListener("click", async event => { event.preventDe
 byId("signIn").addEventListener("click", async () => { if (!configured) return window.alert("Set Firebase Web configuration in firebase-config.js first."); if (state.user) return fb.signOut(window.quosAuth); byId("operatorEmail").value = ""; byId("operatorPassword").value = ""; byId("authMessage").textContent = "Choose Google or the Email/Password user created in Firebase Authentication. Credentials are never saved."; authDialog.showModal(); });
 byId("googleSignIn").addEventListener("click", async event => { event.preventDefault(); await beginGoogleSignIn(); });
 byId("emailSignIn").addEventListener("click", async event => { event.preventDefault(); try { await beginEmailSignIn(); } catch (error) { byId("authMessage").textContent = error.message; } });
+byId("passwordReset").addEventListener("click", async event => { event.preventDefault(); try { await requestPasswordReset(); } catch (error) { byId("authMessage").textContent = error.message; } });
 search.addEventListener("input", renderBots); groupFilter.addEventListener("change", renderBots);
 
 function bindSnapshot(source, callback) { fb.onSnapshot(source, snapshot => { byId("connection").textContent = "FIREBASE LIVE"; callback(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))); }, error => { byId("connection").textContent = "FIREBASE READ BLOCKED"; console.warn("Firestore read blocked:", error.message); }); }

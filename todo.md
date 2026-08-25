@@ -72,3 +72,5 @@
 - [ ] Complete a successful Firebase Google sign-in on the hosted dashboard, create `dashboardOperators/<UID> { enabled: true }`, and validate one live browser task plus one verified earnings record without storing a Gemini key.
 - [ ] Add a Firebase Email/Password sign-in form for the manually created dashboard user, without retaining its password, then authorize its UID as the sole operator.
 - [ ] Correct the invalid browserWorkspace Firestore collection/document path hierarchy, update its security rules and regression coverage, and validate the repaired live listeners before recording operator task or earnings data.
+- [ ] Diagnose and repair the Firebase Email/Password operator sign-in failure, including provider state, recovery-user credentials, and user-safe on-page error guidance.
+- [ ] Add a password-reset request action for the Firebase Email/Password recovery user, without exposing or retaining a password.

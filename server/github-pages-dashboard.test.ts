@@ -7,10 +7,13 @@ describe("GitHub Pages dashboard authentication", () => {
     const document = await readFile(new URL("../github-pages-dashboard/index.html", import.meta.url), "utf8");
     expect(source).toContain("signInWithRedirect");
     expect(source).toContain("signInWithEmailAndPassword");
+    expect(source).toContain("sendPasswordResetEmail");
+    expect(source).toContain("auth/operation-not-allowed");
     expect(source).toContain("getRedirectResult(auth)");
     expect(source).not.toContain("signInWithPopup");
     expect(document).toMatch(/src="app\.js\?v=[^"]+"/);
     expect(document).toContain('id="operatorPassword"');
+    expect(document).toContain('id="passwordReset"');
   });
 
   it("keeps browser Gemini assistance session-scoped and exposes local brain export", async () => {

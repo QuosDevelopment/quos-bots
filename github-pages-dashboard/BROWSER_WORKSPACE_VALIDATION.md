@@ -39,3 +39,7 @@ With the owner’s explicit approval, a `dashboardOperators` document was submit
 During the subsequent document check, the authenticated Firebase Console data view returned a blank application canvas despite retaining the signed-in account chrome. The saved operator record will therefore be confirmed through the dashboard authorization path after the Email/Password session succeeds; it is not yet claimed as independently verified.
 
 On the hosted dashboard, the Firebase Auth and Firestore client objects both initialized successfully. The data indicator remained in a transient `FIREBASE CONNECTING` state during the next check. Investigation identified that the first browser-workspace implementation used an invalid two-segment browser-workspace hierarchy. The code and rules now use valid root collections: `browserTasks`, `browserBotStatuses`, `browserEarnings`, and operator-only `browserBrain`. No browser-workspace task or earnings records existed, so no record migration is required; the corrected deployment and rules still require live validation.
+
+## Valid browser collection policy — 2026-08-25
+
+After explicit approval, the corrected Firestore policy was published successfully. The Rules editor recorded a new active revision at **Today • 2:20 AM** and no longer displayed an unpublished-changes action. The active rule source uses valid `browserTasks`, `browserBotStatuses`, `browserEarnings`, and `browserBrain` paths.
