@@ -51,7 +51,7 @@
 - [x] Add a GitHub Actions workflow that publishes the GitHub Pages dashboard from the private QUOS Bots repository.
 - [x] Add Firebase web-client configuration documentation and a safe dashboard operator sign-in path.
 - [x] Validate the GitHub Pages build and document the static-dashboard availability boundary versus free-tier Replit bot-runtime availability. Live Firebase and Replit activation remains an operator-controlled external step.
-- [x] Configure Firebase Web settings and verify the dashboard renders live bot status, task history, and earnings from Firestore instead of the unconfigured placeholder state. The browser workspace now displays Firebase-backed public projections; real records require the revised Firestore rules and an enabled operator.
+- [x] Configure Firebase Web settings and verify the dashboard renders live bot status, task history, and earnings from Firestore instead of the unconfigured placeholder state. The browser workspace now displays Firebase-backed public projections and the revised Firestore rules are published; real records require an enabled operator.
 - [x] Run the GitHub Pages workflow, publish the HTTPS dashboard, and verify the hosted 101-persona interface separately from Replit runtime availability. The latest workflow completed successfully and the hosted page loaded all 101 persona controls with Firebase configured.
 - [x] Make the GitHub Pages Firebase operator sign-in flow resilient to popup handling; Firebase user/operator-record verification remains pending live redirect completion.
 - [x] Cache-bust GitHub Pages dashboard modules so newly deployed authentication behavior is not masked by a browser’s previous asset cache.
@@ -68,4 +68,5 @@
 - [x] Add browser-scoped Gemini task assistance that never hardcodes or publishes an API key.
 - [x] Add browser-side source collection, append-only local brain.jsonl export, and Firebase-safe task/status/earnings projections.
 - [x] Add an operator-gated browser-workspace verified-earnings projection with public sanitized reads, private input controls, Firestore rules, and regression coverage.
-- [ ] Publish and validate the GitHub Pages-only workspace, documenting that browser agents run only while a user’s page is open.
+- [x] Publish and validate the GitHub Pages-only workspace, documenting that browser agents run only while a user’s page is open. GitHub Actions deployment `32749439557` succeeded and the hosted 101-persona workspace was verified.
+- [ ] Complete a successful Firebase Google sign-in on the hosted dashboard, create `dashboardOperators/<UID> { enabled: true }`, and validate one live browser task plus one verified earnings record without storing a Gemini key.
